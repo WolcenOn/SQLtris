@@ -196,7 +196,7 @@ canvas#gc { display:block; width:100%; height:100%; }
 .ref-kw   { font-weight:bold; }
 .ref-desc { color:rgba(0,255,65,0.5); font-size:0.58rem; margin-top:1px; line-height:1.32; }
 .ref-example { color:var(--amber); font-size:0.56rem; margin-top:2px; }
-.ref-syntax { /* multi-line code examples */
+.ref-syntax {
   color:rgba(0,243,255,0.6); font-size:0.55rem; line-height:1.7;
   margin-top:3px; border-left:2px solid var(--dim); padding-left:5px;
 }
@@ -217,7 +217,6 @@ canvas#gc { display:block; width:100%; height:100%; }
   font-size:0.7rem; text-align:center; max-width:280px;
   line-height:1.65; color:rgba(0,255,65,0.7);
 }
-/* [NUEVO] Category indicator pill on start overlay */
 .cat-pill {
   padding:4px 14px; border-radius:12px; font-size:0.7rem;
   border:1px solid; font-family:'Share Tech Mono',monospace;
@@ -265,30 +264,16 @@ canvas#gc { display:block; width:100%; height:100%; }
 </head>
 <body>
 
-<!-- ── HEADER ─────────────────────────────────────── -->
 <header class="header">
   <div class="logo">SQL-TRIS<span class="logo-sub">ULTIMATE</span></div>
   <div class="hud">
-    <div class="hud-item">
-      <span class="hud-label">NIVEL</span>
-      <span class="hud-value" id="lvl">1</span>
-    </div>
-    <div class="hud-item">
-      <span class="hud-label">SCORE</span>
-      <span class="hud-value" id="sc">0</span>
-    </div>
-    <div class="hud-item">
-      <span class="hud-label">VIDAS</span>
-      <span class="hud-value" id="hp">&#9829;&#9829;&#9829;</span>
-    </div>
-    <div class="hud-item">
-      <span class="hud-label">COMBO</span>
-      <span class="hud-value" id="combo" style="color:var(--amber)">x1</span>
-    </div>
+    <div class="hud-item"><span class="hud-label">NIVEL</span><span class="hud-value" id="lvl">1</span></div>
+    <div class="hud-item"><span class="hud-label">SCORE</span><span class="hud-value" id="sc">0</span></div>
+    <div class="hud-item"><span class="hud-label">VIDAS</span><span class="hud-value" id="hp">&#9829;&#9829;&#9829;</span></div>
+    <div class="hud-item"><span class="hud-label">COMBO</span><span class="hud-value" id="combo" style="color:var(--amber)">x1</span></div>
   </div>
 </header>
 
-<!-- ── SETTINGS ROW — [MEJORA COMPLETA: Cat + Diff + Speed] ── -->
 <div class="settings-row">
   <label>
     <span class="settings-label">CATEGOR&Iacute;A</span>
@@ -320,7 +305,6 @@ canvas#gc { display:block; width:100%; height:100%; }
 <div class="main">
   <div class="game-panel">
 
-    <!-- TARGET QUERY DISPLAY -->
     <div class="target-display">
       <div class="section-label">
         <span>&#9654; OBJETIVO SQL</span>
@@ -329,16 +313,12 @@ canvas#gc { display:block; width:100%; height:100%; }
       <div class="target-tokens" id="target-tokens"></div>
     </div>
 
-    <!-- GAME CANVAS + OVERLAYS -->
     <div class="canvas-wrapper" id="cw">
       <canvas id="gc"></canvas>
 
-      <!-- START OVERLAY -->
       <div class="overlay" id="ov-start">
         <h2 style="color:var(--green)">SQL-TRIS</h2>
-        <!-- [NUEVO] Category indicator, updated dynamically -->
         <div class="cat-pill" id="cat-pill-start">DML</div>
-        <!-- [NUEVO] Category description -->
         <p id="cat-desc-start" style="color:var(--amber);font-size:0.65rem;margin-top:-4px"></p>
         <p>Captura tokens en el <strong style="color:var(--cyan)">orden correcto</strong>.<br><br>
           <span style="color:var(--dim)">&#8592; &#8594; / A D</span> &mdash; Mover cursor<br>
@@ -347,17 +327,14 @@ canvas#gc { display:block; width:100%; height:100%; }
         <button class="overlay-btn" id="btn-start">&#9654; INICIAR</button>
       </div>
 
-      <!-- LEVEL COMPLETE OVERLAY -->
       <div class="overlay" id="ov-level" style="display:none">
         <h2 style="color:var(--cyan)">&#10003; QUERY V&Aacute;LIDA</h2>
         <div class="completed-query" id="completed-q"></div>
-        <!-- [MEJORA] Explanation shown in styled box, not plain <p> -->
         <div class="explain-box" id="level-exp"></div>
         <div class="level-bonus" id="level-bonus"></div>
         <button class="overlay-btn" id="btn-next">SIGUIENTE NIVEL &#9654;</button>
       </div>
 
-      <!-- GAME OVER OVERLAY -->
       <div class="overlay" id="ov-gameover" style="display:none">
         <h2 style="color:var(--red)">GAME OVER</h2>
         <p id="final-msg"></p>
@@ -365,16 +342,13 @@ canvas#gc { display:block; width:100%; height:100%; }
       </div>
     </div>
 
-    <!-- QUERY IN PROGRESS -->
     <div class="query-progress">
       <div class="section-label">&#9654; QUERY EN CONSTRUCCI&Oacute;N</div>
       <div id="qprog"></div>
     </div>
 
-    <!-- HINT BAR -->
     <div class="hint-bar" id="hint"></div>
 
-    <!-- [MEJORA] Touch controls — labels mejorados para móvil -->
     <div class="controls-row">
       <button class="ctrl-btn" id="btnL">&#9668; IZQ</button>
       <button class="ctrl-btn" id="btnD">&#11015; BAJAR</button>
@@ -382,117 +356,60 @@ canvas#gc { display:block; width:100%; height:100%; }
     </div>
   </div>
 
-  <!-- ── SQL REFERENCE PANEL — [NUEVO] Tabs por categoría ── -->
   <div class="ref-panel">
     <div class="ref-title">&#9658; SQL REFERENCIA</div>
 
-    <!-- DML Reference -->
     <div class="ref-tab active" id="ref-dml">
       <div class="ref-group">
         <div class="ref-group-label">ESTRUCTURA B&Aacute;SICA</div>
-        <div class="ref-entry">
-          <div class="ref-kw" style="color:var(--cyan)">SELECT &hellip; FROM</div>
-          <div class="ref-desc">Columnas y tabla origen</div>
-          <div class="ref-example">SELECT name FROM users</div>
-        </div>
-        <div class="ref-entry">
-          <div class="ref-kw" style="color:var(--cyan)">WHERE</div>
-          <div class="ref-desc">Filtra filas con condici&oacute;n</div>
-          <div class="ref-example">WHERE age &gt; 18</div>
-        </div>
-        <div class="ref-entry">
-          <div class="ref-kw" style="color:var(--amber)">ORDER BY / LIMIT</div>
-          <div class="ref-desc">Ordena y recorta resultado</div>
-          <div class="ref-example">ORDER BY name LIMIT 10</div>
-        </div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--cyan)">SELECT &hellip; FROM</div><div class="ref-desc">Columnas y tabla origen</div><div class="ref-example">SELECT name FROM users</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--cyan)">WHERE</div><div class="ref-desc">Filtra filas con condici&oacute;n</div><div class="ref-example">WHERE age &gt; 18</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--amber)">ORDER BY / LIMIT</div><div class="ref-desc">Ordena y recorta resultado</div><div class="ref-example">ORDER BY name LIMIT 10</div></div>
       </div>
       <div class="ref-group">
         <div class="ref-group-label">AGREGACI&Oacute;N</div>
-        <div class="ref-entry">
-          <div class="ref-kw" style="color:var(--green)">COUNT(*) SUM AVG</div>
-          <div class="ref-desc">Calcul&aacute;n sobre grupos</div>
-        </div>
-        <div class="ref-entry">
-          <div class="ref-kw" style="color:var(--green)">GROUP BY / HAVING</div>
-          <div class="ref-desc">Agrupa y filtra grupos</div>
-        </div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--green)">COUNT(*) SUM AVG</div><div class="ref-desc">Calcul&aacute;n sobre grupos</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--green)">GROUP BY / HAVING</div><div class="ref-desc">Agrupa y filtra grupos</div></div>
       </div>
       <div class="ref-group">
         <div class="ref-group-label">ORDEN CORRECTO SQL</div>
-        <div class="ref-desc" style="line-height:1.85;color:rgba(0,255,65,0.6)">
-          1. SELECT<br>2. FROM<br>3. WHERE<br>4. GROUP BY<br>5. HAVING<br>6. ORDER BY<br>7. LIMIT
-        </div>
+        <div class="ref-desc" style="line-height:1.85;color:rgba(0,255,65,0.6)">1. SELECT<br>2. FROM<br>3. WHERE<br>4. GROUP BY<br>5. HAVING<br>6. ORDER BY<br>7. LIMIT</div>
       </div>
     </div>
 
-    <!-- DDL Reference -->
     <div class="ref-tab" id="ref-ddl">
       <div class="ref-group">
         <div class="ref-group-label">CREAR / BORRAR</div>
-        <div class="ref-entry">
-          <div class="ref-kw" style="color:var(--teal)">CREATE TABLE</div>
-          <div class="ref-desc">Crea una nueva tabla</div>
-          <div class="ref-syntax">CREATE TABLE t (<br>&nbsp;id INT,<br>&nbsp;name VARCHAR<br>)</div>
-        </div>
-        <div class="ref-entry">
-          <div class="ref-kw" style="color:var(--teal)">DROP TABLE</div>
-          <div class="ref-desc">Elimina tabla + datos</div>
-        </div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--teal)">CREATE TABLE</div><div class="ref-desc">Crea una nueva tabla</div><div class="ref-syntax">CREATE TABLE t (<br>&nbsp;id INT,<br>&nbsp;name VARCHAR<br>)</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--teal)">DROP TABLE</div><div class="ref-desc">Elimina tabla + datos</div></div>
       </div>
       <div class="ref-group">
         <div class="ref-group-label">MODIFICAR</div>
-        <div class="ref-entry">
-          <div class="ref-kw" style="color:var(--teal)">ALTER TABLE &hellip; ADD COLUMN</div>
-          <div class="ref-desc">A&ntilde;ade columna existente</div>
-        </div>
-        <div class="ref-entry">
-          <div class="ref-kw" style="color:var(--teal)">ALTER TABLE &hellip; DROP COLUMN</div>
-          <div class="ref-desc">Elimina columna + datos</div>
-        </div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--teal)">ALTER TABLE &hellip; ADD COLUMN</div><div class="ref-desc">A&ntilde;ade columna existente</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--teal)">ALTER TABLE &hellip; DROP COLUMN</div><div class="ref-desc">Elimina columna + datos</div></div>
       </div>
       <div class="ref-group">
         <div class="ref-group-label">TIPOS DE DATO</div>
-        <div class="ref-desc" style="line-height:1.85;color:var(--orange)">
-          INT &mdash; entero<br>
-          VARCHAR &mdash; texto<br>
-          DECIMAL &mdash; decimal<br>
-          DATE &mdash; fecha<br>
-          BOOLEAN &mdash; true/false
-        </div>
+        <div class="ref-desc" style="line-height:1.85;color:var(--orange)">INT &mdash; entero<br>VARCHAR &mdash; texto<br>DECIMAL &mdash; decimal<br>DATE &mdash; fecha<br>BOOLEAN &mdash; true/false</div>
       </div>
       <div class="ref-group">
         <div class="ref-group-label">RESTRICCIONES</div>
-        <div class="ref-desc" style="color:var(--teal);line-height:1.85">
-          PRIMARY KEY<br>NOT NULL<br>UNIQUE<br>AUTO_INCREMENT<br>DEFAULT valor
-        </div>
+        <div class="ref-desc" style="color:var(--teal);line-height:1.85">PRIMARY KEY<br>NOT NULL<br>UNIQUE<br>AUTO_INCREMENT<br>DEFAULT valor</div>
       </div>
     </div>
 
-    <!-- PROC/TRIGGER Reference -->
     <div class="ref-tab" id="ref-proc">
       <div class="ref-group">
         <div class="ref-group-label">TRIGGER</div>
-        <div class="ref-entry">
-          <div class="ref-kw" style="color:var(--violet)">CREATE TRIGGER</div>
-          <div class="ref-desc">C&oacute;digo autom&aacute;tico al INSERT/UPDATE/DELETE</div>
-          <div class="ref-syntax">CREATE TRIGGER nombre<br>BEFORE|AFTER evento<br>ON tabla<br>FOR EACH ROW<br>BEGIN END</div>
-        </div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--violet)">CREATE TRIGGER</div><div class="ref-desc">C&oacute;digo autom&aacute;tico al INSERT/UPDATE/DELETE</div><div class="ref-syntax">CREATE TRIGGER nombre<br>BEFORE|AFTER evento<br>ON tabla<br>FOR EACH ROW<br>BEGIN END</div></div>
       </div>
       <div class="ref-group">
         <div class="ref-group-label">PROCEDURE</div>
-        <div class="ref-entry">
-          <div class="ref-kw" style="color:var(--violet)">CREATE PROCEDURE</div>
-          <div class="ref-desc">Bloque SQL reutilizable<br>Llamar con CALL proc()</div>
-          <div class="ref-syntax">CREATE PROCEDURE p()<br>BEGIN<br>&nbsp;SQL;<br>END</div>
-        </div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--violet)">CREATE PROCEDURE</div><div class="ref-desc">Bloque SQL reutilizable<br>Llamar con CALL proc()</div><div class="ref-syntax">CREATE PROCEDURE p()<br>BEGIN<br>&nbsp;SQL;<br>END</div></div>
       </div>
       <div class="ref-group">
         <div class="ref-group-label">DELIMITER</div>
-        <div class="ref-entry">
-          <div class="ref-kw" style="color:var(--yellow)">DELIMITER //</div>
-          <div class="ref-desc">Cambia el terminador para que ; dentro de BEGIN/END no corte la instrucción</div>
-          <div class="ref-syntax">DELIMITER //<br>CREATE PROCEDURE p()<br>BEGIN<br>&nbsp;SELECT 1;<br>END<br>//<br>DELIMITER ;</div>
-        </div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--yellow)">DELIMITER //</div><div class="ref-desc">Cambia el terminador para que ; dentro de BEGIN/END no corte la instrucción</div><div class="ref-syntax">DELIMITER //<br>CREATE PROCEDURE p()<br>BEGIN<br>&nbsp;SELECT 1;<br>END<br>//<br>DELIMITER ;</div></div>
       </div>
     </div>
   </div>
@@ -505,29 +422,23 @@ canvas#gc { display:block; width:100%; height:100%; }
 const COLS = 7;
 const ROWS = 14;
 
-// [MEJORA] Token colors — extended for DDL, datatypes and procedural SQL
 const COLORS = {
-  kw:    { bg:'#001833', border:'#00f3ff', text:'#00f3ff' },  // DML keywords
-  table: { bg:'#1a0f00', border:'#ffb700', text:'#ffb700' },  // Table names
-  col:   { bg:'#001800', border:'#00ff41', text:'#00ff41' },  // Column / identifier names
-  op:    { bg:'#1a0000', border:'#ff3131', text:'#ff3131' },  // = > < != >= <=
-  val:   { bg:'#0d0019', border:'#bc13fe', text:'#bc13fe' },  // Literals '...' and numbers
-  wild:  { bg:'#141414', border:'#cccccc', text:'#ffffff' },  // * COUNT(*) etc.
-  sep:   { bg:'#0f0f0f', border:'#777777', text:'#bbbbbb' },  // , ; ( )
-  ddl:   { bg:'#001a10', border:'#00ffaa', text:'#00ffaa' },  // [NUEVO] DDL keywords
-  dtype: { bg:'#1a0900', border:'#ff8c00', text:'#ff8c00' },  // [NUEVO] Data types (INT, VARCHAR…)
-  proc:  { bg:'#12001a', border:'#dd44ff', text:'#dd44ff' },  // [NUEVO] Proc/Trigger keywords
-  delim: { bg:'#1a1a00', border:'#eeee00', text:'#ffff55' },  // [NUEVO] DELIMITER symbol (//)
+  kw:    { bg:'#001833', border:'#00f3ff', text:'#00f3ff' },
+  table: { bg:'#1a0f00', border:'#ffb700', text:'#ffb700' },
+  col:   { bg:'#001800', border:'#00ff41', text:'#00ff41' },
+  op:    { bg:'#1a0000', border:'#ff3131', text:'#ff3131' },
+  val:   { bg:'#0d0019', border:'#bc13fe', text:'#bc13fe' },
+  wild:  { bg:'#141414', border:'#cccccc', text:'#ffffff' },
+  sep:   { bg:'#0f0f0f', border:'#777777', text:'#bbbbbb' },
+  ddl:   { bg:'#001a10', border:'#00ffaa', text:'#00ffaa' },
+  dtype: { bg:'#1a0900', border:'#ff8c00', text:'#ff8c00' },
+  proc:  { bg:'#12001a', border:'#dd44ff', text:'#dd44ff' },
+  delim: { bg:'#1a1a00', border:'#eeee00', text:'#ffff55' },
 };
 
-// [MEJORA] Short symbols rendered at 220-250% font size to fill the token cell
 const GIANT_SYMBOLS = new Set(['*','=',',','.','(',')','<','>',';','//','$$','!=','>=','<=',':']);
 
-// ════════════════════════════════════════════════════════════
-//  TOKEN TYPE CLASSIFIER — extended for DDL + procedural SQL
-// ════════════════════════════════════════════════════════════
 function tokenType(t) {
-  // Delimiter symbols (the // or $$ terminators)
   if (t === '//' || t === '$$') return 'delim';
 
   const proc_kw = new Set([
@@ -555,14 +466,9 @@ function tokenType(t) {
     'DISTINCT','UNION','EXISTS'
   ]);
   const ops  = new Set(['=','>','<','>=','<=','!=']);
-  const wild = new Set([
-    '*','COUNT(*)','SUM(salary)','AVG(age)','MAX(salary)','NOW()','CURDATE()'
-  ]);
+  const wild = new Set(['*','COUNT(*)','SUM(salary)','AVG(age)','MAX(salary)','NOW()','CURDATE()']);
   const seps = new Set([',',';','(',')','.',':']);
-  const tables = new Set([
-    'users','employees','orders','products','customers',
-    'departments','logs','temp_data','items','audit'
-  ]);
+  const tables = new Set(['users','employees','orders','products','customers','departments','logs','temp_data','items','audit']);
 
   if (proc_kw.has(t))  return 'proc';
   if (ddl_kw.has(t))   return 'ddl';
@@ -573,17 +479,10 @@ function tokenType(t) {
   if (seps.has(t))     return 'sep';
   if (/^\d+$/.test(t) || t.startsWith("'")) return 'val';
   if (tables.has(t))   return 'table';
-  return 'col'; // column names, procedure names, param names
+  return 'col';
 }
 
-// ════════════════════════════════════════════════════════════
-//  CHALLENGES — organized by CATEGORY
-//  [NUEVO] DDL + TRIGGERS/PROC categories with pedagogically
-//  correct queries (no missing commas, parentheses, etc.)
-// ════════════════════════════════════════════════════════════
 const CATEGORIES = {
-
-  // ── DML ────────────────────────────────────────────────
   dml: {
     label: 'DML',
     icon:  '&#128269;',
@@ -595,64 +494,18 @@ const CATEGORIES = {
       'COUNT(*)','id','products','!=','customers','orders'
     ],
     challenges: [
-      {
-        query:   ['SELECT','*','FROM','users'],
-        hint:    '&#128161; SELECT * FROM obtiene TODAS las columnas de una tabla',
-        explain: 'El asterisco (*) es un comodin: "todas las columnas". Es la consulta mas basica, pero en produccion es mejor listar columnas explicitamente.',
-        decoys:  ['WHERE','ORDER BY','name','employees','=','LIMIT'],
-      },
-      {
-        query:   ['SELECT','name','FROM','employees'],
-        hint:    '&#128161; Pide solo la columna "name". Mas eficiente que SELECT *',
-        explain: 'Nombrar columnas concretas transfiere menos datos y hace el codigo mas legible. SELECT * puede ser costoso en tablas con muchas columnas.',
-        decoys:  ['*','users','WHERE','salary',',','age','ORDER BY'],
-      },
-      {
-        query:   ['SELECT','*','FROM','orders','WHERE','status','=','active'],
-        hint:    '&#128161; WHERE filtra filas. Solo devuelve pedidos donde status = active',
-        explain: 'WHERE evalua cada fila e incluye solo las que cumplen la condicion. Sin WHERE, obtendrias TODOS los pedidos sin filtro.',
-        decoys:  ['name','users','ORDER BY','>','inactive','LIMIT','AND'],
-      },
-      {
-        query:   ['SELECT','name',',','salary','FROM','employees','WHERE','salary','>','50000'],
-        hint:    '&#128161; Varias columnas separadas con coma. WHERE + &gt; filtra por valor numerico',
-        explain: 'La coma separa columnas en SELECT. Los operadores > < = != filtran por comparacion numerica en WHERE. Muy util para rangos.',
-        decoys:  ['*','users','=','<','ORDER BY','active','AND'],
-      },
-      {
-        query:   ['SELECT','*','FROM','products','ORDER BY','price'],
-        hint:    '&#128161; ORDER BY ordena el resultado. Por defecto ASC (ascendente)',
-        explain: 'ORDER BY reordena las filas. ASC = menor a mayor (por defecto), DESC = mayor a menor. Se puede ordenar por multiples columnas.',
-        decoys:  ['WHERE','name','users','salary','=','active','LIMIT'],
-      },
-      {
-        query:   ['SELECT','COUNT(*)','FROM','users','WHERE','active','=','1'],
-        hint:    '&#128161; COUNT(*) cuenta las filas que cumplen el WHERE',
-        explain: 'Las funciones de agregacion (COUNT, SUM, AVG, MAX, MIN) calculan un valor resumen sobre un conjunto de filas. COUNT(*) no excluye NULLs.',
-        decoys:  ['name','employees','ORDER BY','*','>','salary',','],
-      },
-      {
-        query:   ['SELECT','name',',','email','FROM','customers','ORDER BY','name','LIMIT','10'],
-        hint:    '&#128161; LIMIT recorta el resultado a los primeros N registros',
-        explain: 'LIMIT es esencial para paginacion y para evitar cargar millones de filas. Combinado con ORDER BY, siempre devuelve los mismos registros.',
-        decoys:  ['*','users','WHERE','=','salary','active','GROUP BY'],
-      },
-      {
-        query:   ['SELECT','name',',','COUNT(*)','FROM','orders','GROUP BY','name'],
-        hint:    '&#128161; GROUP BY agrupa filas con el mismo valor para aplicar funciones de agregacion',
-        explain: 'GROUP BY es fundamental para estadisticas: cuantas ordenes por cliente, ventas por mes, etc. Cada grupo produce una fila en el resultado.',
-        decoys:  ['*','users','WHERE','=','salary','LIMIT','ORDER BY'],
-      },
-      {
-        query:   ['SELECT','name',',','SUM(salary)','FROM','employees','GROUP BY','name','HAVING','SUM(salary)','>','100000'],
-        hint:    '&#128161; HAVING filtra grupos ya agrupados. Como WHERE pero DESPUES del GROUP BY',
-        explain: 'WHERE filtra filas ANTES de agrupar. HAVING filtra grupos DESPUES del GROUP BY. Ambos pueden coexistir en la misma query.',
-        decoys:  ['*','users','WHERE','=','ORDER BY','LIMIT',',','age'],
-      },
+      { query:['SELECT','*','FROM','users'], hint:'&#128161; SELECT * FROM obtiene TODAS las columnas de una tabla', explain:'El asterisco (*) es un comodin: "todas las columnas". Es la consulta mas basica, pero en produccion es mejor listar columnas explicitamente.', decoys:['WHERE','ORDER BY','name','employees','=','LIMIT'] },
+      { query:['SELECT','name','FROM','employees'], hint:'&#128161; Pide solo la columna "name". Mas eficiente que SELECT *', explain:'Nombrar columnas concretas transfiere menos datos y hace el codigo mas legible. SELECT * puede ser costoso en tablas con muchas columnas.', decoys:['*','users','WHERE','salary',',','age','ORDER BY'] },
+      { query:['SELECT','*','FROM','orders','WHERE','status','=','active'], hint:'&#128161; WHERE filtra filas. Solo devuelve pedidos donde status = active', explain:'WHERE evalua cada fila e incluye solo las que cumplen la condicion. Sin WHERE, obtendrias TODOS los pedidos sin filtro.', decoys:['name','users','ORDER BY','>','inactive','LIMIT','AND'] },
+      { query:['SELECT','name',',','salary','FROM','employees','WHERE','salary','>','50000'], hint:'&#128161; Varias columnas separadas con coma. WHERE + &gt; filtra por valor numerico', explain:'La coma separa columnas en SELECT. Los operadores > < = != filtran por comparacion numerica en WHERE. Muy util para rangos.', decoys:['*','users','=','<','ORDER BY','active','AND'] },
+      { query:['SELECT','*','FROM','products','ORDER BY','price'], hint:'&#128161; ORDER BY ordena el resultado. Por defecto ASC (ascendente)', explain:'ORDER BY reordena las filas. ASC = menor a mayor (por defecto), DESC = mayor a menor. Se puede ordenar por multiples columnas.', decoys:['WHERE','name','users','salary','=','active','LIMIT'] },
+      { query:['SELECT','COUNT(*)','FROM','users','WHERE','active','=','1'], hint:'&#128161; COUNT(*) cuenta las filas que cumplen el WHERE', explain:'Las funciones de agregacion (COUNT, SUM, AVG, MAX, MIN) calculan un valor resumen sobre un conjunto de filas. COUNT(*) no excluye NULLs.', decoys:['name','employees','ORDER BY','*','>','salary',','] },
+      { query:['SELECT','name',',','email','FROM','customers','ORDER BY','name','LIMIT','10'], hint:'&#128161; LIMIT recorta el resultado a los primeros N registros', explain:'LIMIT es esencial para paginacion y para evitar cargar millones de filas. Combinado con ORDER BY, siempre devuelve los mismos registros.', decoys:['*','users','WHERE','=','salary','active','GROUP BY'] },
+      { query:['SELECT','name',',','COUNT(*)','FROM','orders','GROUP BY','name'], hint:'&#128161; GROUP BY agrupa filas con el mismo valor para aplicar funciones de agregacion', explain:'GROUP BY es fundamental para estadisticas: cuantas ordenes por cliente, ventas por mes, etc. Cada grupo produce una fila en el resultado.', decoys:['*','users','WHERE','=','salary','LIMIT','ORDER BY'] },
+      { query:['SELECT','name',',','SUM(salary)','FROM','employees','GROUP BY','name','HAVING','SUM(salary)','>','100000'], hint:'&#128161; HAVING filtra grupos ya agrupados. Como WHERE pero DESPUES del GROUP BY', explain:'WHERE filtra filas ANTES de agrupar. HAVING filtra grupos DESPUES del GROUP BY. Ambos pueden coexistir en la misma query.', decoys:['*','users','WHERE','=','ORDER BY','LIMIT',',','age'] },
     ],
   },
 
-  // ── DDL ────────────────────────────────────────────────
   ddl: {
     label: 'DDL',
     icon:  '&#128295;',
@@ -665,46 +518,15 @@ const CATEGORIES = {
       'orders','products','email','salary','price','total'
     ],
     challenges: [
-      {
-        query:   ['CREATE','TABLE','users','(','id','INT',',','name','VARCHAR',')'],
-        hint:    '&#128161; CREATE TABLE define la estructura de una nueva tabla con columnas y tipos',
-        explain: 'CREATE TABLE crea la estructura de una tabla. Cada columna tiene nombre y tipo de dato: INT (entero), VARCHAR (texto), DATE (fecha), DECIMAL (decimal con decimales).',
-        decoys:  ['ALTER','DROP','SELECT','FROM','WHERE','email','PRIMARY KEY','BOOLEAN'],
-      },
-      {
-        query:   ['ALTER','TABLE','employees','ADD','COLUMN','email','VARCHAR'],
-        hint:    '&#128161; ALTER TABLE ADD COLUMN: anyade una columna nueva sin eliminar datos existentes',
-        explain: 'ALTER TABLE modifica tablas ya creadas. ADD COLUMN es la operacion mas segura: anade sin perder datos. Si hay millones de filas, puede ser costoso en tiempo.',
-        decoys:  ['CREATE','DROP','SELECT','name','INT','DECIMAL','UNIQUE','NOT NULL'],
-      },
-      {
-        query:   ['DROP','TABLE','temp_data'],
-        hint:    '&#128161; DROP TABLE elimina la tabla y TODOS sus datos. Completamente irreversible',
-        explain: 'DROP TABLE es irreversible. En produccion, haz siempre un backup antes. Usa DROP TABLE IF EXISTS para evitar errores si la tabla no existe.',
-        decoys:  ['CREATE','ALTER','SELECT','users','employees','DATABASE','INDEX','COLUMN'],
-      },
-      {
-        query:   ['CREATE','TABLE','orders','(','id','INT','PRIMARY KEY',',','total','DECIMAL',')'],
-        hint:    '&#128161; PRIMARY KEY: identifica de forma unica cada fila, nunca puede repetirse ni ser NULL',
-        explain: 'PRIMARY KEY garantiza la unicidad de cada registro y es el pilar de la integridad relacional. Normalmente es un INT AUTO_INCREMENT. Cada tabla deberia tener una.',
-        decoys:  ['ALTER','SELECT','name','VARCHAR','UNIQUE','NOT NULL','user_id','FOREIGN KEY'],
-      },
-      {
-        query:   ['ALTER','TABLE','products','DROP','COLUMN','old_price'],
-        hint:    '&#128161; ALTER TABLE DROP COLUMN: elimina una columna y todos sus datos',
-        explain: 'Eliminar una columna borra todos sus datos definitivamente. Si hay indices o foreign keys que la referencian, tambien se eliminan o dan error.',
-        decoys:  ['CREATE','ADD','SELECT','FROM','id','INT','name','COLUMN','ADD COLUMN'],
-      },
-      {
-        query:   ['CREATE','INDEX','idx_name','ON','users','(','name',')'],
-        hint:    '&#128161; CREATE INDEX acelera las busquedas en columnas frecuentemente consultadas',
-        explain: 'Sin indice, SQL escanea TODA la tabla (full scan). Con indice, accede directamente. El coste es espacio en disco y escrituras mas lentas. Como el indice de un libro.',
-        decoys:  ['ALTER','TABLE','employees','salary','WHERE','SELECT','UNIQUE','PRIMARY KEY'],
-      },
+      { query:['CREATE','TABLE','users','(','id','INT',',','name','VARCHAR',')'], hint:'&#128161; CREATE TABLE define la estructura de una nueva tabla con columnas y tipos', explain:'CREATE TABLE crea la estructura de una tabla. Cada columna tiene nombre y tipo de dato: INT (entero), VARCHAR (texto), DATE (fecha), DECIMAL (decimal con decimales).', decoys:['ALTER','DROP','SELECT','FROM','WHERE','email','PRIMARY KEY','BOOLEAN'] },
+      { query:['ALTER','TABLE','employees','ADD','COLUMN','email','VARCHAR'], hint:'&#128161; ALTER TABLE ADD COLUMN: anyade una columna nueva sin eliminar datos existentes', explain:'ALTER TABLE modifica tablas ya creadas. ADD COLUMN es la operacion mas segura: anade sin perder datos. Si hay millones de filas, puede ser costoso en tiempo.', decoys:['CREATE','DROP','SELECT','name','INT','DECIMAL','UNIQUE','NOT NULL'] },
+      { query:['DROP','TABLE','temp_data'], hint:'&#128161; DROP TABLE elimina la tabla y TODOS sus datos. Completamente irreversible', explain:'DROP TABLE es irreversible. En produccion, haz siempre un backup antes. Usa DROP TABLE IF EXISTS para evitar errores si la tabla no existe.', decoys:['CREATE','ALTER','SELECT','users','employees','DATABASE','INDEX','COLUMN'] },
+      { query:['CREATE','TABLE','orders','(','id','INT','PRIMARY KEY',',','total','DECIMAL',')'], hint:'&#128161; PRIMARY KEY: identifica de forma unica cada fila, nunca puede repetirse ni ser NULL', explain:'PRIMARY KEY garantiza la unicidad de cada registro y es el pilar de la integridad relacional. Normalmente es un INT AUTO_INCREMENT. Cada tabla deberia tener una.', decoys:['ALTER','SELECT','name','VARCHAR','UNIQUE','NOT NULL','user_id','FOREIGN KEY'] },
+      { query:['ALTER','TABLE','products','DROP','COLUMN','old_price'], hint:'&#128161; ALTER TABLE DROP COLUMN: elimina una columna y todos sus datos', explain:'Eliminar una columna borra todos sus datos definitivamente. Si hay indices o foreign keys que la referencian, tambien se eliminan o dan error.', decoys:['CREATE','ADD','SELECT','FROM','id','INT','name','COLUMN','ADD COLUMN'] },
+      { query:['CREATE','INDEX','idx_name','ON','users','(','name',')'], hint:'&#128161; CREATE INDEX acelera las busquedas en columnas frecuentemente consultadas', explain:'Sin indice, SQL escanea TODA la tabla (full scan). Con indice, accede directamente. El coste es espacio en disco y escrituras mas lentas. Como el indice de un libro.', decoys:['ALTER','TABLE','employees','salary','WHERE','SELECT','UNIQUE','PRIMARY KEY'] },
     ],
   },
 
-  // ── TRIGGERS & PROCEDURES ─────────────────────────────
   proc: {
     label: 'TRIGGERS',
     icon:  '&#9889;',
@@ -717,44 +539,15 @@ const CATEGORIES = {
       'AFTER','BEFORE','CALL','DECLARE'
     ],
     challenges: [
-      {
-        query:   ['CREATE','TRIGGER','log_insert','BEFORE','INSERT','ON','users','FOR EACH ROW','BEGIN','END'],
-        hint:    '&#128161; TRIGGER: codigo automatico que se dispara al hacer INSERT, UPDATE o DELETE',
-        explain: 'Los triggers ejecutan logica automaticamente. BEFORE INSERT significa "antes de cada insercion en users". FOR EACH ROW ejecuta el cuerpo por cada fila afectada.',
-        decoys:  ['DELIMITER','//','PROCEDURE','FUNCTION','AFTER','UPDATE','DELETE','employees','orders'],
-      },
-      {
-        query:   ['CREATE','TRIGGER','del_audit','AFTER','DELETE','ON','orders','FOR EACH ROW','BEGIN','END'],
-        hint:    '&#128161; AFTER DELETE: el trigger se ejecuta DESPUES del borrado, ideal para auditorias',
-        explain: 'BEFORE permite validar o modificar datos ANTES de guardarlos. AFTER permite registrar lo que ya ocurrio. Muy usado para logs de auditoria.',
-        decoys:  ['DELIMITER','//','PROCEDURE','BEFORE','INSERT','UPDATE','users','employees','FUNCTION'],
-      },
-      {
-        query:   ['DELIMITER','//','CREATE','TRIGGER','chk_salary','BEFORE','UPDATE','ON','employees','FOR EACH ROW','BEGIN','END','//'],
-        hint:    '&#128161; DELIMITER // evita que el ; del cuerpo corte prematuramente la declaracion del TRIGGER',
-        explain: 'MySQL interpreta ; como fin de instruccion. DELIMITER // cambia el terminador a // para poder escribir bloques BEGIN/END con ; dentro sin interrupciones.',
-        decoys:  ['$$','PROCEDURE','AFTER','INSERT','DELETE','users','orders','FUNCTION'],
-      },
-      {
-        query:   ['CREATE','PROCEDURE','get_users','(',')','BEGIN','SELECT','*','FROM','users',';','END'],
-        hint:    '&#128161; PROCEDURE: bloque SQL reutilizable. Se invoca con CALL get_users()',
-        explain: 'Los procedimientos almacenados encapsulan logica SQL compleja. Reducen trafico de red, centralizan reglas de negocio y pueden tener parametros IN y OUT.',
-        decoys:  ['DELIMITER','//','TRIGGER','FUNCTION','BEFORE','ALTER','employees','AFTER','DELETE'],
-      },
-      {
-        query:   ['DELIMITER','//','CREATE','PROCEDURE','clear_logs','(',')','BEGIN','DELETE','FROM','logs',';','END','//'],
-        hint:    '&#128161; PROCEDURE con DELIMITER: el // cierra el bloque completo del procedimiento',
-        explain: 'DELIMITER es imprescindible cuando el cuerpo contiene ; (como DELETE FROM... ;). Sin el, MySQL cortaria la instruccion en el primer punto y coma.',
-        decoys:  ['TRIGGER','BEFORE','AFTER','FOR EACH ROW','SELECT','users','employees','$$','FUNCTION'],
-      },
+      { query:['CREATE','TRIGGER','log_insert','BEFORE','INSERT','ON','users','FOR EACH ROW','BEGIN','END'], hint:'&#128161; TRIGGER: codigo automatico que se dispara al hacer INSERT, UPDATE o DELETE', explain:'Los triggers ejecutan logica automaticamente. BEFORE INSERT significa "antes de cada insercion en users". FOR EACH ROW ejecuta el cuerpo por cada fila afectada.', decoys:['DELIMITER','//','PROCEDURE','FUNCTION','AFTER','UPDATE','DELETE','employees','orders'] },
+      { query:['CREATE','TRIGGER','del_audit','AFTER','DELETE','ON','orders','FOR EACH ROW','BEGIN','END'], hint:'&#128161; AFTER DELETE: el trigger se ejecuta DESPUES del borrado, ideal para auditorias', explain:'BEFORE permite validar o modificar datos ANTES de guardarlos. AFTER permite registrar lo que ya ocurrio. Muy usado para logs de auditoria.', decoys:['DELIMITER','//','PROCEDURE','BEFORE','INSERT','UPDATE','users','employees','FUNCTION'] },
+      { query:['DELIMITER','//','CREATE','TRIGGER','chk_salary','BEFORE','UPDATE','ON','employees','FOR EACH ROW','BEGIN','END','//'], hint:'&#128161; DELIMITER // evita que el ; del cuerpo corte prematuramente la declaracion del TRIGGER', explain:'MySQL interpreta ; como fin de instruccion. DELIMITER // cambia el terminador a // para poder escribir bloques BEGIN/END con ; dentro sin interrupciones.', decoys:['$$','PROCEDURE','AFTER','INSERT','DELETE','users','orders','FUNCTION'] },
+      { query:['CREATE','PROCEDURE','get_users','(',')','BEGIN','SELECT','*','FROM','users',';','END'], hint:'&#128161; PROCEDURE: bloque SQL reutilizable. Se invoca con CALL get_users()', explain:'Los procedimientos almacenados encapsulan logica SQL compleja. Reducen trafico de red, centralizan reglas de negocio y pueden tener parametros IN y OUT.', decoys:['DELIMITER','//','TRIGGER','FUNCTION','BEFORE','ALTER','employees','AFTER','DELETE'] },
+      { query:['DELIMITER','//','CREATE','PROCEDURE','clear_logs','(',')','BEGIN','DELETE','FROM','logs',';','END','//'], hint:'&#128161; PROCEDURE con DELIMITER: el // cierra el bloque completo del procedimiento', explain:'DELIMITER es imprescindible cuando el cuerpo contiene ; (como DELETE FROM... ;). Sin el, MySQL cortaria la instruccion en el primer punto y coma.', decoys:['TRIGGER','BEFORE','AFTER','FOR EACH ROW','SELECT','users','employees','$$','FUNCTION'] },
     ],
   },
-
 };
 
-// ════════════════════════════════════════════════════════════
-//  USER PREFERENCES — [MEJORA] Saved in localStorage
-// ════════════════════════════════════════════════════════════
 const PREFS = { cat:'dml', diff:'normal', speed:1.0 };
 
 function loadSettings() {
@@ -762,10 +555,31 @@ function loadSettings() {
     const cat   = localStorage.getItem('sqltris_cat');
     const diff  = localStorage.getItem('sqltris_diff');
     const speed = localStorage.getItem('sqltris_speed');
-    if (cat)   { PREFS.cat   = cat;            document.getElementById('sel-cat').value   = cat; }
-    if (diff)  { PREFS.diff  = diff;           document.getElementById('sel-diff').value  = diff; }
-    if (speed) { PREFS.speed = parseFloat(speed); document.getElementById('sel-speed').value = speed; }
-  } catch(e) { /* localStorage blocked — silent fallback */ }
+
+    if (cat && CATEGORIES[cat]) {
+      PREFS.cat = cat;
+      document.getElementById('sel-cat').value = cat;
+    } else {
+      PREFS.cat = 'dml';
+      document.getElementById('sel-cat').value = 'dml';
+      localStorage.removeItem('sqltris_cat');
+    }
+
+    if (diff && ['easy', 'normal', 'hard'].includes(diff)) {
+      PREFS.diff = diff;
+      document.getElementById('sel-diff').value = diff;
+    }
+
+    if (speed && !isNaN(parseFloat(speed))) {
+      PREFS.speed = parseFloat(speed);
+      document.getElementById('sel-speed').value = speed;
+    }
+  } catch(e) {
+    PREFS.cat = 'dml';
+    PREFS.diff = 'normal';
+    PREFS.speed = 1.0;
+  }
+
   updateCatDisplay();
 }
 
@@ -777,27 +591,25 @@ function savePrefs() {
   } catch(e) {}
 }
 
-// [NUEVO] Update category pill on start overlay + reference panel tab
 function updateCatDisplay() {
-  const cat = CATEGORIES[PREFS.cat];
+  const cat = CATEGORIES[PREFS.cat] || CATEGORIES.dml;
 
-  // Start overlay pill
   const pill = document.getElementById('cat-pill-start');
   if (pill) {
-    pill.textContent    = cat.icon + ' ' + cat.label;
-    pill.style.cssText += ';color:'+cat.color+';border-color:'+cat.color+
-                          ';box-shadow:0 0 10px '+cat.color+'44;';
+    pill.textContent = cat.icon + ' ' + cat.label;
+    pill.style.color = cat.color;
+    pill.style.borderColor = cat.color;
+    pill.style.boxShadow = '0 0 10px currentColor';
   }
+
   const descEl = document.getElementById('cat-desc-start');
   if (descEl) descEl.innerHTML = cat.desc;
 
-  // Reference panel — show correct tab
   document.querySelectorAll('.ref-tab').forEach(t => t.classList.remove('active'));
-  const activeTab = document.getElementById('ref-'+PREFS.cat);
+  const activeTab = document.getElementById('ref-' + PREFS.cat);
   if (activeTab) activeTab.classList.add('active');
 }
 
-// Settings event listeners — [MEJORA] apply in real-time + persist
 document.getElementById('sel-cat').addEventListener('change', e => {
   PREFS.cat = e.target.value; savePrefs(); updateCatDisplay();
 });
@@ -808,9 +620,6 @@ document.getElementById('sel-speed').addEventListener('change', e => {
   PREFS.speed = parseFloat(e.target.value); savePrefs();
 });
 
-// ════════════════════════════════════════════════════════════
-//  GAME STATE
-// ════════════════════════════════════════════════════════════
 let S = {};
 
 function resetState() {
@@ -826,10 +635,10 @@ function resetState() {
     collected:     [],
     neededIdx:     0,
     challenge:     null,
-    challengeIdx:  0,   // [NUEVO] index within active category's challenges array
+    challengeIdx:  0,
     spawnTimer:    0,
-    spawnInterval: 90,  // frames between spawns (base)
-    baseSpeed:     1.5, // [MEJORA] rows-per-second (semantic unit)
+    spawnInterval: 90,
+    baseSpeed:     1.5,
     particles:     [],
     shakeTimer:    0,
     frameCount:    0,
@@ -837,7 +646,6 @@ function resetState() {
   };
 }
 
-// ── CANVAS ───────────────────────────────────────────────
 const canvas  = document.getElementById('gc');
 const ctx     = canvas.getContext('2d');
 const wrapper = document.getElementById('cw');
@@ -849,14 +657,10 @@ function syncCanvas() {
 function CW() { return canvas.width  / COLS; }
 function CH() { return canvas.height / ROWS; }
 
-// ── ACTIVE CHALLENGES HELPER ─────────────────────────────
 function getActiveChallenges() {
-  return CATEGORIES[PREFS.cat].challenges;
+  return (CATEGORIES[PREFS.cat] || CATEGORIES.dml).challenges;
 }
 
-// ════════════════════════════════════════════════════════════
-//  CHALLENGE MANAGEMENT
-// ════════════════════════════════════════════════════════════
 function loadChallenge(idx) {
   const challenges = getActiveChallenges();
   const ch = challenges[idx % challenges.length];
@@ -870,14 +674,13 @@ function loadChallenge(idx) {
   renderProgress();
   setHint(ch.hint);
 
-  // [MEJORA] Challenge badge includes category icon and position
-  const cat = CATEGORIES[PREFS.cat];
+  const cat = CATEGORIES[PREFS.cat] || CATEGORIES.dml;
   document.getElementById('challenge-num').innerHTML =
     cat.icon + ' ' + cat.label +
     ' &middot; <span style="color:var(--green)">' +
     (S.challengeIdx + 1) + '&nbsp;/&nbsp;' + challenges.length + '</span>';
   document.getElementById('challenge-num').style.color = cat.color;
-  document.getElementById('challenge-num').style.borderColor = cat.color + '55';
+  document.getElementById('challenge-num').style.borderColor = cat.color;
 }
 
 function renderTarget() {
@@ -921,30 +724,22 @@ function updateHUD() {
   document.getElementById('combo').textContent = 'x' + S.combo;
 }
 
-// ════════════════════════════════════════════════════════════
-//  TOKEN SPAWNING
-// ════════════════════════════════════════════════════════════
 function spawnToken() {
   const ch     = S.challenge;
   const needed = ch.query[S.neededIdx];
 
-  // 38% chance of spawning the needed token (+ always spawn one if board is empty)
   let text;
   if (Math.random() < 0.38 || S.tokens.length === 0) {
     text = needed;
   } else {
-    // [MEJORA] Use per-category decoy pool for thematic tokens
-    const catDecoys = CATEGORIES[PREFS.cat].decoys || [];
+    const catDecoys = (CATEGORIES[PREFS.cat] || CATEGORIES.dml).decoys || [];
     const pool = [...(ch.decoys || []), ...catDecoys].filter(d => d !== needed);
     text = pool[Math.floor(Math.random() * pool.length)];
   }
 
-  // Avoid column collisions
   const busy = new Set(S.tokens.map(t => t.col));
   const free = Array.from({ length: COLS }, (_, i) => i).filter(c => !busy.has(c));
-  const col  = free.length
-    ? free[Math.floor(Math.random() * free.length)]
-    : Math.floor(Math.random() * COLS);
+  const col  = free.length ? free[Math.floor(Math.random() * free.length)] : Math.floor(Math.random() * COLS);
 
   S.tokens.push({
     id:       Math.random(),
@@ -956,14 +751,10 @@ function spawnToken() {
   });
 }
 
-// ════════════════════════════════════════════════════════════
-//  TOKEN COLLECTION LOGIC
-// ════════════════════════════════════════════════════════════
 function collectToken(tok) {
   const needed = S.challenge.query[S.neededIdx];
 
   if (tok.text === needed) {
-    // ✅ CORRECT TOKEN
     S.collected.push(tok.text);
     S.neededIdx++;
     S.missStreak = 0;
@@ -980,14 +771,9 @@ function collectToken(tok) {
       setTimeout(onLevelComplete, 650);
     } else {
       const nextTok = S.challenge.query[S.neededIdx];
-      setHint(
-        '&#10003; +' + pts + 'pts &nbsp;COMBO x' + S.combo +
-        ' &middot; Captura: <strong>' + nextTok + '</strong>',
-        'var(--green)'
-      );
+      setHint('&#10003; +' + pts + 'pts &nbsp;COMBO x' + S.combo + ' &middot; Captura: <strong>' + nextTok + '</strong>', 'var(--green)');
     }
   } else {
-    // ✗ WRONG TOKEN
     S.lives--;
     S.missStreak++;
     S.combo      = Math.max(1, S.combo - 1);
@@ -997,21 +783,13 @@ function collectToken(tok) {
     renderTarget();
     updateHUD();
 
-    const warn = S.missStreak > 2
-      ? ' &nbsp;&#9888; ' + S.missStreak + ' fallos seguidos!'
-      : '';
-    setHint(
-      '&#10007; &quot;' + tok.text + '&quot; incorrecto. Necesitas: <strong>' + needed + '</strong>' + warn,
-      'var(--red)'
-    );
+    const warn = S.missStreak > 2 ? ' &nbsp;&#9888; ' + S.missStreak + ' fallos seguidos!' : '';
+    setHint('&#10007; &quot;' + tok.text + '&quot; incorrecto. Necesitas: <strong>' + needed + '</strong>' + warn, 'var(--red)');
 
     if (S.lives <= 0) setTimeout(onGameOver, 500);
   }
 }
 
-// ════════════════════════════════════════════════════════════
-//  PARTICLES
-// ════════════════════════════════════════════════════════════
 function spawnParticles(col, correct) {
   const x     = col * CW() + CW() / 2;
   const y     = canvas.height - CH();
@@ -1032,14 +810,10 @@ function spawnParticles(col, correct) {
   }
 }
 
-// ════════════════════════════════════════════════════════════
-//  DRAW
-// ════════════════════════════════════════════════════════════
 function draw() {
   const cw = CW(), ch = CH();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // ── Grid lines
   ctx.lineWidth   = 1;
   ctx.strokeStyle = 'rgba(0,255,65,0.05)';
   for (let c = 0; c <= COLS; c++) {
@@ -1049,26 +823,21 @@ function draw() {
     ctx.beginPath(); ctx.moveTo(0, r*ch); ctx.lineTo(canvas.width, r*ch); ctx.stroke();
   }
 
-  // ── Cursor column highlight
   const cx = S.cursor * cw;
   ctx.fillStyle = 'rgba(0,255,65,0.065)';
   ctx.fillRect(cx, 0, cw, canvas.height);
 
-  // ── Catcher box at bottom row
   ctx.strokeStyle = 'rgba(0,255,65,0.8)';
   ctx.lineWidth   = 2;
   ctx.strokeRect(cx + 3, canvas.height - ch + 3, cw - 6, ch - 6);
   ctx.fillStyle   = 'rgba(0,255,65,0.7)';
   ctx.fillRect(cx + 3, canvas.height - ch, cw - 6, 3);
 
-  // ── Ghost: faded preview of the next needed token in the catcher
   if (S.challenge && S.neededIdx < S.challenge.query.length) {
     const needed    = S.challenge.query[S.neededIdx];
     const c         = COLORS[tokenType(needed)];
     const isGhostGiant = GIANT_SYMBOLS.has(needed);
-    const ghostFs   = isGhostGiant
-      ? Math.min(ch * 0.62, cw * 0.52)
-      : Math.max(7, Math.min(12, cw / Math.max(1, needed.length) * 1.35));
+    const ghostFs   = isGhostGiant ? Math.min(ch * 0.62, cw * 0.52) : Math.max(7, Math.min(12, cw / Math.max(1, needed.length) * 1.35));
     ctx.font        = 'bold ' + ghostFs + 'px Share Tech Mono,monospace';
     ctx.fillStyle   = c.text + '40';
     ctx.textAlign   = 'center';
@@ -1076,34 +845,27 @@ function draw() {
     ctx.fillText(needed, cx + cw/2, canvas.height - ch/2);
   }
 
-  // ── Falling tokens
   S.tokens.forEach(tok => {
     const x = tok.col * cw;
     const y = tok.y   * ch;
     const c = COLORS[tok.type];
     const pad = 3;
 
-    const isNext = tok.isNeeded &&
-                   S.challenge &&
-                   tok.text === S.challenge.query[S.neededIdx];
+    const isNext = tok.isNeeded && S.challenge && tok.text === S.challenge.query[S.neededIdx];
 
-    // Background fill
     ctx.fillStyle = c.bg;
     ctx.fillRect(x + pad, y + pad, cw - pad*2, ch - pad*2);
 
-    // Border — glow effect on needed token
     if (isNext) { ctx.shadowColor = c.border; ctx.shadowBlur = 16; }
     ctx.strokeStyle = c.border;
     ctx.lineWidth   = isNext ? 2 : 1;
     ctx.strokeRect(x + pad, y + pad, cw - pad*2, ch - pad*2);
     ctx.shadowBlur  = 0;
 
-    // [MEJORA] GIANT SYMBOL RENDERING — symbols at 220-250% normal size
     const isGiant = GIANT_SYMBOLS.has(tok.text);
     let displayText, fs;
     if (isGiant) {
       displayText = tok.text;
-      // Fill ~68% cell height or ~56% cell width, whichever is smaller
       fs = Math.min(ch * 0.68, cw * 0.56);
     } else {
       const maxCh = Math.max(1, Math.floor((cw - 10) / 7));
@@ -1118,7 +880,6 @@ function draw() {
     ctx.fillText(displayText, x + cw/2, y + ch/2);
   });
 
-  // ── Particles
   S.particles.forEach(p => {
     ctx.globalAlpha = p.life / p.maxLife;
     ctx.fillStyle   = p.color;
@@ -1129,16 +890,12 @@ function draw() {
   ctx.globalAlpha = 1;
 }
 
-// ════════════════════════════════════════════════════════════
-//  GAME LOOP
-// ════════════════════════════════════════════════════════════
 let rafId = null;
 
 function gameLoop() {
   if (!S.running) return;
   S.frameCount++;
 
-  // ── Key-held cursor movement (immediate + repeat after delay)
   if (keys.L) {
     S.keyTimer.L++;
     if (S.keyTimer.L === 1 || (S.keyTimer.L > 10 && S.keyTimer.L % 2 === 0)) {
@@ -1153,56 +910,40 @@ function gameLoop() {
     }
   } else { S.keyTimer.R = 0; }
 
-  // ── [MEJORA] Dynamic speed multipliers
-  // Difficulty preset: Easy=0.75x | Normal=1.0x | Hard=1.3x
   const diffMult = PREFS.diff === 'easy' ? 0.75 : PREFS.diff === 'hard' ? 1.3 : 1.0;
 
-  // [MEJORA] Adaptive speed: +2% per combo level, -3% per miss streak — bounded [0.82, 1.14]
-  const adaptMult = Math.max(0.82, Math.min(1.14,
-    1 + (S.combo - 1) * 0.02 - S.missStreak * 0.03
-  ));
+  const adaptMult = Math.max(0.82, Math.min(1.14, 1 + (S.combo - 1) * 0.02 - S.missStreak * 0.03));
 
-  // Final rows-per-second value
   const activeRPS = S.baseSpeed * diffMult * PREFS.speed * adaptMult;
-
-  // [MEJORA] CORRECTED PHYSICS — assumes ~60fps RAF
-  // fallDelta is always in "rows" units, independent of canvas pixel size
   const fallDelta = (activeRPS / 60) * (keys.D ? 7 : 1);
-
-  // [MEJORA] Spawn interval scales with speed so board stays populated
   const activeSpawnInterval = Math.max(20, S.spawnInterval / (diffMult * PREFS.speed));
 
-  // ── Spawn
   S.spawnTimer++;
   if (S.spawnTimer >= activeSpawnInterval) {
     spawnToken();
     S.spawnTimer = 0;
   }
 
-  // ── Move tokens + collision detection at bottom row (ROWS-1)
   const toRemove = [];
   S.tokens.forEach(tok => {
     tok.y += fallDelta;
 
-    // Update isNeeded flag in case the needed index changed since spawn
     if (S.challenge && S.neededIdx < S.challenge.query.length) {
       tok.isNeeded = (tok.text === S.challenge.query[S.neededIdx]);
     }
 
     if (tok.y >= ROWS - 1) {
-      if (tok.col === S.cursor) collectToken(tok); // caught!
+      if (tok.col === S.cursor) collectToken(tok);
       toRemove.push(tok.id);
     }
   });
   S.tokens = S.tokens.filter(t => !toRemove.includes(t.id));
 
-  // ── Particles physics
   S.particles.forEach(p => {
     p.x += p.vx; p.y += p.vy; p.vy += 0.13; p.life--;
   });
   S.particles = S.particles.filter(p => p.life > 0);
 
-  // ── Screen shake on error
   if (S.shakeTimer > 0) {
     canvas.style.transform = 'translateX(' + ((Math.random() - 0.5) * 5) + 'px)';
     if (--S.shakeTimer === 0) canvas.style.transform = '';
@@ -1212,9 +953,6 @@ function gameLoop() {
   rafId = requestAnimationFrame(gameLoop);
 }
 
-// ════════════════════════════════════════════════════════════
-//  LEVEL / GAME EVENTS
-// ════════════════════════════════════════════════════════════
 function onLevelComplete() {
   S.running = false;
   if (rafId) cancelAnimationFrame(rafId);
@@ -1225,8 +963,7 @@ function onLevelComplete() {
 
   document.getElementById('completed-q').textContent = S.collected.join(' ');
   document.getElementById('level-exp').innerHTML     = S.challenge.explain;
-  document.getElementById('level-bonus').innerHTML   =
-    '&#127942; +' + bonus + ' pts BONUS &nbsp; COMBO x' + S.combo;
+  document.getElementById('level-bonus').innerHTML   = '&#127942; +' + bonus + ' pts BONUS &nbsp; COMBO x' + S.combo;
   document.getElementById('ov-level').style.display  = 'flex';
 }
 
@@ -1247,7 +984,6 @@ function startGame() {
   S.level        = 1;
   S.challengeIdx = 0;
 
-  // Apply initial difficulty curve
   S.baseSpeed     = 1.5;
   S.spawnInterval = 90;
 
@@ -1261,11 +997,9 @@ function nextLevel() {
   document.getElementById('ov-level').style.display = 'none';
   S.level++;
 
-  // [MEJORA] Smoother progression: +0.12 RPS per level, spawn 4 frames faster
   S.baseSpeed     = 1.5 + (S.level - 1) * 0.12;
   S.spawnInterval = Math.max(35, 90 - (S.level - 1) * 4);
 
-  // [MEJORA] Advance within category challenges (wraps around)
   S.challengeIdx = (S.challengeIdx + 1) % getActiveChallenges().length;
   loadChallenge(S.challengeIdx);
 
@@ -1279,9 +1013,6 @@ function restartGame() {
   startGame();
 }
 
-// ════════════════════════════════════════════════════════════
-//  INPUT HANDLING — keyboard + touch (unchanged + a/d/s/space)
-// ════════════════════════════════════════════════════════════
 const keys = { L:false, R:false, D:false };
 
 document.addEventListener('keydown', e => {
@@ -1310,12 +1041,10 @@ bindBtn('btnL','L');
 bindBtn('btnD','D');
 bindBtn('btnR','R');
 
-// Overlay buttons
 document.getElementById('btn-start').addEventListener('click',   startGame);
 document.getElementById('btn-next').addEventListener('click',    nextLevel);
 document.getElementById('btn-restart').addEventListener('click', restartGame);
 
-// Swipe on canvas (mobile) — existing behavior preserved
 let swipeX = null;
 canvas.addEventListener('touchstart', e => { swipeX = e.touches[0].clientX; }, { passive:true });
 canvas.addEventListener('touchend', e => {
@@ -1328,7 +1057,6 @@ canvas.addEventListener('touchend', e => {
   swipeX = null;
 });
 
-// Debounced resize
 let rto;
 window.addEventListener('resize', () => {
   clearTimeout(rto);
@@ -1336,9 +1064,10 @@ window.addEventListener('resize', () => {
 });
 
 // ── INIT ─────────────────────────────────────────────────
-loadSettings(); // [MEJORA] Restore user preferences from localStorage
+resetState();
+loadSettings();
 syncCanvas();
-draw();         // Draw empty board before game starts
+draw();
 </script>
 </body>
 </html>
