@@ -507,6 +507,278 @@ canvas#gc{display:block;width:100%;height:100%}
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+try {
+const COLS = 7;
+const ROWS = 14;
+
+const COLORS = {
+  kw:{bg:'#001833',border:'#00f3ff',text:'#00f3ff'},
+  table:{bg:'#1a0f00',border:'#ffb700',text:'#ffb700'},
+  col:{bg:'#001800',border:'#00ff41',text:'#00ff41'},
+  op:{bg:'#1a0000',border:'#ff3131',text:'#ff3131'},
+  val:{bg:'#0d0019',border:'#bc13fe',text:'#bc13fe'},
+  wild:{bg:'#141414',border:'#cccccc',text:'#ffffff'},
+  sep:{bg:'#0f0f0f',border:'#777777',text:'#bbbbbb'},
+  ddl:{bg:'#001a10',border:'#00ffaa',text:'#00ffaa'},
+  dtype:{bg:'#1a0900',border:'#ff8c00',text:'#ff8c00'},
+  proc:{bg:'#12001a',border:'#dd44ff',text:'#dd44ff'},
+  delim:{bg:'#1a1a00',border:'#eeee00',text:'#ffff55'}
+};
+
+const GIANT_SYMBOLS = new Set(['*','=',',','.','(',')','<','>',';','//','$$','!=','>=','<=',':']);
+
+function tokenType(t){
+  if(t === '//' || t === '$$') return 'delim';
+  const proc_kw = new Set(['PROCEDURE','TRIGGER','FUNCTION','BEGIN','END','BEFORE','AFTER','FOR EACH ROW','CALL','RETURN','RETURNS','DECLARE','DELIMITER','IN','OUT','INOUT','THEN','ELSE','LOOP','LEAVE','ITERATE','IF','HANDLER','SIGNAL']);
+  const ddl_kw = new Set(['CREATE','ALTER','DROP','ADD','TABLE','COLUMN','INDEX','DATABASE','SCHEMA','PRIMARY KEY','FOREIGN KEY','REFERENCES','UNIQUE','NOT NULL','AUTO_INCREMENT','DEFAULT','IF EXISTS','IF NOT EXISTS','MODIFY','RENAME','TRUNCATE','CONSTRAINT']);
+  const dtype = new Set(['INT','VARCHAR','DECIMAL','DATE','TEXT','BOOLEAN','FLOAT','BIGINT','SMALLINT','CHAR','DATETIME','TIMESTAMP','ENUM','TINYINT','BLOB','JSON','DOUBLE']);
+  const dml_kw = new Set(['SELECT','FROM','WHERE','ORDER BY','GROUP BY','LIMIT','HAVING','JOIN','INNER JOIN','LEFT JOIN','RIGHT JOIN','ON','AS','AND','OR','NOT','IN','LIKE','INSERT','INSERT INTO','UPDATE','SET','DELETE','VALUES','INTO','BETWEEN','IS NULL','IS NOT NULL','DISTINCT','UNION','EXISTS']);
+  const ops = new Set(['=','>','<','>=','<=','!=']);
+  const wild = new Set(['*','COUNT(*)','SUM(salary)','AVG(age)','MAX(salary)','NOW()','CURDATE()']);
+  const seps = new Set([',',';','(',')','.',':']);
+  const tables = new Set(['users','employees','orders','products','customers','departments','logs','temp_data','items','audit']);
+  if(proc_kw.has(t)) return 'proc';
+  if(ddl_kw.has(t)) return 'ddl';
+  if(dtype.has(t)) return 'dtype';
+  if(dml_kw.has(t)) return 'kw';
+  if(ops.has(t)) return 'op';
+  if(wild.has(t)) return 'wild';
+  if(seps.has(t)) return 'sep';
+  if(/^\d+$/.test(t) || t.startsWith("'")) return 'val';
+  if(tables.has(t)) return 'table';
+  return 'col';
+}
+
+const CATEGORIES = {
+  dml:{
+    label:'DML', icon:'&#128269;', color:'var(--cyan)', desc:'Consultas de datos: SELECT, WHERE, GROUP BY, HAVING',
+    decoys:['*','name','salary','users','employees','WHERE','ORDER BY','LIMIT','=','>','<','AND','OR','active','1','10',',','age','email','status','COUNT(*)','id','products','!=','customers','orders'],
+    challenges:[
+      {query:['SELECT','*','FROM','users'], hint:'&#128161; SELECT * FROM obtiene TODAS las columnas de una tabla', explain:'El asterisco (*) significa todas las columnas.', decoys:['WHERE','ORDER BY','name','employees','=','LIMIT']},
+      {query:['SELECT','name','FROM','employees'], hint:'&#128161; Pide solo la columna name.', explain:'Nombrar columnas concretas suele ser más eficiente que SELECT *.', decoys:['*','users','WHERE','salary',',','age','ORDER BY']},
+      {query:['SELECT','*','FROM','orders','WHERE','status','=','active'], hint:'&#128161; WHERE filtra filas.', explain:'WHERE incluye solo las filas que cumplen la condición.', decoys:['name','users','ORDER BY','>','inactive','LIMIT','AND']},
+      {query:['SELECT','name',',','salary','FROM','employees','WHERE','salary','>','50000'], hint:'&#128161; Varias columnas se separan con coma.', explain:'La coma separa columnas en SELECT y > filtra por comparación numérica.', decoys:['*','users','=','<','ORDER BY','active','AND']},
+      {query:['SELECT','*','FROM','products','ORDER BY','price'], hint:'&#128161; ORDER BY ordena el resultado.', explain:'ORDER BY reordena las filas; por defecto usa orden ascendente.', decoys:['WHERE','name','users','salary','=','active','LIMIT']},
+      {query:['SELECT','COUNT(*)','FROM','users','WHERE','active','=','1'], hint:'&#128161; COUNT(*) cuenta filas.', explain:'COUNT(*) cuenta las filas que cumplen el filtro.', decoys:['name','employees','ORDER BY','*','>','salary',',']}
+    ]
+  },
+  ddl:{
+    label:'DDL', icon:'&#128295;', color:'var(--teal)', desc:'Estructura de BD: CREATE TABLE, ALTER, DROP, INDEX',
+    decoys:['CREATE','ALTER','DROP','TABLE','COLUMN','INDEX','INT','VARCHAR','DECIMAL','DATE','users','employees','id','name','PRIMARY KEY','UNIQUE','NOT NULL','ADD',',','(',')',';','AUTO_INCREMENT','DEFAULT','orders','products','email','salary','price','total'],
+    challenges:[
+      {query:['CREATE','TABLE','users','(','id','INT',',','name','VARCHAR',')'], hint:'&#128161; CREATE TABLE define una tabla.', explain:'Cada columna tiene nombre y tipo de dato.', decoys:['ALTER','DROP','SELECT','FROM','WHERE','email','PRIMARY KEY','BOOLEAN']},
+      {query:['ALTER','TABLE','employees','ADD','COLUMN','email','VARCHAR'], hint:'&#128161; ADD COLUMN añade una columna.', explain:'ALTER TABLE modifica tablas ya existentes.', decoys:['CREATE','DROP','SELECT','name','INT','DECIMAL','UNIQUE','NOT NULL']},
+      {query:['DROP','TABLE','temp_data'], hint:'&#128161; DROP TABLE elimina tabla y datos.', explain:'DROP TABLE es destructivo e irreversible si no hay copia.', decoys:['CREATE','ALTER','SELECT','users','employees','DATABASE','INDEX','COLUMN']},
+      {query:['CREATE','TABLE','orders','(','id','INT','PRIMARY KEY',',','total','DECIMAL',')'], hint:'&#128161; PRIMARY KEY identifica filas únicas.', explain:'PRIMARY KEY garantiza unicidad y no admite NULL.', decoys:['ALTER','SELECT','name','VARCHAR','UNIQUE','NOT NULL','user_id','FOREIGN KEY']}
+    ]
+  },
+  proc:{
+    label:'TRIGGERS', icon:'&#9889;', color:'var(--violet)', desc:'Automatización: TRIGGER, PROCEDURE, BEGIN/END, DELIMITER',
+    decoys:['TRIGGER','PROCEDURE','FUNCTION','BEGIN','END','BEFORE','AFTER','INSERT','UPDATE','DELETE','FOR EACH ROW','DELIMITER','//','users','employees','orders','SELECT','FROM','WHERE',';','(',')','CREATE','CALL','DECLARE'],
+    challenges:[
+      {query:['CREATE','TRIGGER','log_insert','BEFORE','INSERT','ON','users','FOR EACH ROW','BEGIN','END'], hint:'&#128161; TRIGGER: código automático.', explain:'BEFORE INSERT se ejecuta antes de insertar cada fila.', decoys:['DELIMITER','//','PROCEDURE','FUNCTION','AFTER','UPDATE','DELETE','employees','orders']},
+     @keyframes logoFlicker{0%,92%,94.5%,96.5%,100%{opacity:1}93%,95.5%{opacity:.6}}
+.hud{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.hud-item{display:flex;flex-direction:column;align-items:center;min-width:38px}
+.hud-label{color:var(--dim);font-size:.5rem;letter-spacing:3px}
+.hud-value{color:var(--cyan);font-size:.9rem;font-weight:bold}
+.settings-row{
+  width:100%;max-width:900px;display:flex;gap:10px;justify-content:center;align-items:center;
+  padding:5px 16px;background:#030803;border-bottom:1px solid var(--dim);flex-wrap:wrap;
+}
+.settings-label{color:var(--dim);font-size:.52rem;letter-spacing:2px;margin-right:4px;white-space:nowrap}
+.settings-row select{
+  background:var(--panel);color:var(--green);border:1px solid var(--dim);padding:3px 7px;
+  font-family:'Share Tech Mono',monospace;font-size:.7rem;border-radius:3px;cursor:pointer;max-width:180px;
+}
+.settings-row select:focus,.settings-row select:hover{outline:none;border-color:var(--cyan);box-shadow:0 0 7px rgba(0,243,255,.2)}
+#sel-cat{border-color:rgba(0,255,170,.4)}
+.main{display:flex;gap:10px;padding:8px 12px;max-width:900px;width:100%;flex:1}
+.game-panel{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+.target-display,.query-progress,.hint-bar{
+  background:var(--panel);border:1px solid var(--dim);border-radius:4px;flex-shrink:0;
+}
+.target-display{padding:7px 12px}
+.query-progress{padding:5px 12px;min-height:30px;line-height:1.7}
+.hint-bar{padding:4px 12px;font-size:.65rem;color:var(--amber);min-height:24px}
+.section-label{
+  color:var(--dim);font-size:.54rem;letter-spacing:3px;margin-bottom:5px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.challenge-num-badge{font-size:.56rem;letter-spacing:1px;padding:1px 6px;border-radius:2px;border:1px solid var(--dim)}
+.target-tokens{display:flex;flex-wrap:wrap;gap:4px;min-height:26px}
+.token-badge{
+  padding:2px 6px;border-radius:3px;font-size:.68rem;font-weight:bold;border:1px solid;
+  font-family:'Share Tech Mono',monospace;white-space:nowrap;
+}
+.token-badge.done{opacity:.25;text-decoration:line-through;filter:grayscale(1)}
+.token-badge.future{opacity:.4}
+.token-badge.next{animation:nextPulse .65s infinite alternate}
+@keyframes nextPulse{from{transform:scale(1);box-shadow:0 0 5px currentColor}to{transform:scale(1.13);box-shadow:0 0 18px currentColor,0 0 34px currentColor}}
+.canvas-wrapper{
+  position:relative;flex:1;min-height:300px;border:1px solid rgba(0,255,65,.16);
+  overflow:hidden;border-radius:4px;
+}
+canvas#gc{display:block;width:100%;height:100%}
+.controls-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;flex-shrink:0}
+.ctrl-btn{
+  padding:12px 4px;background:#071007;color:var(--green);border:1px solid var(--dim);
+  font-family:'Share Tech Mono',monospace;font-size:.82rem;cursor:pointer;border-radius:4px;
+  user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.ctrl-btn:active,.ctrl-btn.pressed{background:var(--green);color:#000;box-shadow:0 0 16px var(--green);border-color:var(--green)}
+.ref-panel{
+  width:180px;flex-shrink:0;background:var(--panel);border:1px solid var(--dim);
+  padding:9px;border-radius:4px;overflow-y:auto;font-size:.64rem;max-height:660px;
+}
+.ref-title{
+  font-family:'Orbitron',monospace;font-size:.51rem;letter-spacing:3px;color:var(--cyan);
+  margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--dim);
+}
+.ref-tab{display:none}.ref-tab.active{display:block}.ref-group{margin-bottom:10px}
+.ref-group-label{color:var(--dim);font-size:.51rem;letter-spacing:2px;margin-bottom:4px}
+.ref-entry{margin-bottom:6px}.ref-kw{font-weight:bold}.ref-desc{color:rgba(0,255,65,.5);font-size:.58rem;margin-top:1px;line-height:1.32}
+.ref-example{color:var(--amber);font-size:.56rem;margin-top:2px}
+.ref-syntax{color:rgba(0,243,255,.6);font-size:.55rem;line-height:1.7;margin-top:3px;border-left:2px solid var(--dim);padding-left:5px}
+.overlay{
+  position:absolute;inset:0;background:rgba(2,12,2,.93);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:11px;z-index:10;padding:18px;overflow-y:auto;
+}
+.overlay h2{font-family:'Orbitron',monospace;font-size:clamp(.9rem,3.5vw,1.4rem);text-shadow:0 0 20px currentColor}
+.overlay p{font-size:.7rem;text-align:center;max-width:280px;line-height:1.65;color:rgba(0,255,65,.7)}
+.cat-pill{padding:4px 14px;border-radius:12px;font-size:.7rem;border:1px solid;font-family:'Share Tech Mono',monospace;letter-spacing:2px;font-weight:bold}
+.overlay-btn{
+  padding:8px 24px;background:transparent;color:var(--green);border:2px solid var(--green);
+  font-family:'Share Tech Mono',monospace;font-size:.88rem;letter-spacing:3px;cursor:pointer;border-radius:3px;transition:all .2s;margin-top:2px;
+}
+.overlay-btn:hover{background:var(--green);color:#000;box-shadow:0 0 22px var(--green)}
+.completed-query{
+  font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--cyan);background:rgba(0,243,255,.07);
+  border:1px solid var(--cyan);padding:6px 12px;border-radius:3px;text-align:center;max-width:280px;word-break:break-all;line-height:1.7;
+}
+.level-bonus{color:var(--amber);font-size:.75rem;font-weight:bold;text-align:center}
+.explain-box{
+  font-size:.67rem;text-align:center;max-width:280px;line-height:1.6;color:rgba(0,243,255,.65);
+  border:1px solid rgba(0,243,255,.2);padding:6px 10px;border-radius:3px;background:rgba(0,243,255,.04);
+}
+@media(max-width:600px){
+  .main{flex-direction:column;padding:5px;gap:5px}
+  .ref-panel{width:100%;max-height:115px;display:flex;flex-wrap:nowrap;gap:0;padding:5px 8px;overflow-x:auto;overflow-y:hidden;flex-direction:row}
+  .ref-tab.active{display:flex;gap:12px}.ref-group{flex-shrink:0;margin-bottom:0}.ref-title{display:none}.canvas-wrapper{min-height:270px}
+  .settings-row{gap:6px;justify-content:space-around}.hud{gap:8px}
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="logo">SQL-TRIS<span class="logo-sub">ULTIMATE</span></div>
+  <div class="hud">
+    <div class="hud-item"><span class="hud-label">NIVEL</span><span class="hud-value" id="lvl">1</span></div>
+    <div class="hud-item"><span class="hud-label">SCORE</span><span class="hud-value" id="sc">0</span></div>
+    <div class="hud-item"><span class="hud-label">VIDAS</span><span class="hud-value" id="hp">&#9829;&#9829;&#9829;</span></div>
+    <div class="hud-item"><span class="hud-label">COMBO</span><span class="hud-value" id="combo" style="color:var(--amber)">x1</span></div>
+  </div>
+</header>
+
+<div class="settings-row">
+  <label><span class="settings-label">CATEGOR&Iacute;A</span>
+    <select id="sel-cat">
+      <option value="dml">&#128269; DML &mdash; SELECT / INSERT</option>
+      <option value="ddl">&#128295; DDL &mdash; CREATE / ALTER / DROP</option>
+      <option value="proc">&#9889; TRIGGERS &amp; PROCEDURES</option>
+    </select>
+  </label>
+  <label><span class="settings-label">DIFICULTAD</span>
+    <select id="sel-diff">
+      <option value="easy">F&aacute;cil</option><option value="normal" selected>Normal</option><option value="hard">Dif&iacute;cil</option>
+    </select>
+  </label>
+  <label><span class="settings-label">VELOCIDAD</span>
+    <select id="sel-speed">
+      <option value="0.6">Lenta</option><option value="1.0" selected>Normal</option><option value="1.5">R&aacute;pida</option><option value="2.2">Muy R&aacute;pida</option>
+    </select>
+  </label>
+</div>
+
+<div class="main">
+  <div class="game-panel">
+    <div class="target-display">
+      <div class="section-label"><span>&#9654; OBJETIVO SQL</span><span class="challenge-num-badge" id="challenge-num"></span></div>
+      <div class="target-tokens" id="target-tokens"></div>
+    </div>
+
+    <div class="canvas-wrapper" id="cw">
+      <canvas id="gc"></canvas>
+
+      <div class="overlay" id="ov-start">
+        <h2 style="color:var(--green)">SQL-TRIS</h2>
+        <div class="cat-pill" id="cat-pill-start">DML</div>
+        <p id="cat-desc-start" style="color:var(--amber);font-size:.65rem;margin-top:-4px"></p>
+        <p>Captura tokens en el <strong style="color:var(--cyan)">orden correcto</strong>.<br><br>
+          <span style="color:var(--dim)">&#8592; &#8594; / A D</span> &mdash; Mover cursor<br>
+          <span style="color:var(--dim)">&#8595; / S / ESPACIO</span> &mdash; Ca&iacute;da r&aacute;pida<br>
+          Los tokens <span style="color:var(--cyan);font-weight:bold">brillantes</span> son los que necesitas.</p>
+        <button class="overlay-btn" id="btn-start">&#9654; INICIAR</button>
+      </div>
+
+      <div class="overlay" id="ov-level" style="display:none">
+        <h2 style="color:var(--cyan)">&#10003; QUERY V&Aacute;LIDA</h2>
+        <div class="completed-query" id="completed-q"></div>
+        <div class="explain-box" id="level-exp"></div>
+        <div class="level-bonus" id="level-bonus"></div>
+        <button class="overlay-btn" id="btn-next">SIGUIENTE NIVEL &#9654;</button>
+      </div>
+
+      <div class="overlay" id="ov-gameover" style="display:none">
+        <h2 style="color:var(--red)">GAME OVER</h2>
+        <p id="final-msg"></p>
+        <button class="overlay-btn" id="btn-restart">&#8635; REINICIAR</button>
+      </div>
+    </div>
+
+    <div class="query-progress">
+      <div class="section-label">&#9654; QUERY EN CONSTRUCCI&Oacute;N</div>
+      <div id="qprog"></div>
+    </div>
+    <div class="hint-bar" id="hint"></div>
+    <div class="controls-row">
+      <button class="ctrl-btn" id="btnL">&#9668; IZQ</button>
+      <button class="ctrl-btn" id="btnD">&#11015; BAJAR</button>
+      <button class="ctrl-btn" id="btnR">DER &#9658;</button>
+    </div>
+  </div>
+
+  <div class="ref-panel">
+    <div class="ref-title">&#9658; SQL REFERENCIA</div>
+    <div class="ref-tab active" id="ref-dml">
+      <div class="ref-group">
+        <div class="ref-group-label">ESTRUCTURA B&Aacute;SICA</div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--cyan)">SELECT &hellip; FROM</div><div class="ref-desc">Columnas y tabla origen</div><div class="ref-example">SELECT name FROM users</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--cyan)">WHERE</div><div class="ref-desc">Filtra filas con condici&oacute;n</div><div class="ref-example">WHERE age &gt; 18</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--amber)">ORDER BY / LIMIT</div><div class="ref-desc">Ordena y recorta resultado</div></div>
+      </div>
+    </div>
+    <div class="ref-tab" id="ref-ddl">
+      <div class="ref-group">
+        <div class="ref-group-label">CREAR / MODIFICAR</div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--teal)">CREATE TABLE</div><div class="ref-desc">Crea una nueva tabla</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--teal)">ALTER TABLE</div><div class="ref-desc">Modifica una tabla existente</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--teal)">DROP TABLE</div><div class="ref-desc">Elimina tabla y datos</div></div>
+      </div>
+    </div>
+    <div class="ref-tab" id="ref-proc">
+      <div class="ref-group">
+        <div class="ref-group-label">TRIGGER / PROCEDURE</div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--violet)">CREATE TRIGGER</div><div class="ref-desc">Código automático ante INSERT/UPDATE/DELETE</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--violet)">CREATE PROCEDURE</div><div class="ref-desc">Bloque SQL reutilizable</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--yellow)">DELIMITER //</div><div class="ref-desc">Cambia el terminador en MySQL</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
 const COLS = 7;
 const ROWS = 14;
 
