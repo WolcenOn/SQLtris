@@ -125,6 +125,17 @@ body::before {
   border:1px solid; font-family:'Share Tech Mono',monospace;
   transition:all 0.22s; white-space:nowrap;
 }
+.free-block {
+  display:inline-block; margin:2px 5px 2px 0; padding:2px 6px;
+  border:1px solid rgba(0,243,255,0.35); border-radius:3px;
+  background:rgba(0,243,255,0.06); color:var(--cyan);
+}
+.free-current {
+  display:inline-block; margin:2px 5px 2px 0; padding:2px 6px;
+  border:1px solid rgba(255,183,0,0.45); border-radius:3px;
+  background:rgba(255,183,0,0.05); color:var(--amber);
+}
+
 .token-badge.done   { opacity:0.25; text-decoration:line-through; filter:grayscale(1); }
 .token-badge.future { opacity:0.4; }
 .token-badge.next   { animation: nextPulse 0.65s infinite alternate; }
@@ -276,6 +287,13 @@ canvas#gc { display:block; width:100%; height:100%; }
 
 <div class="settings-row">
   <label>
+    <span class="settings-label">MODO</span>
+    <select id="sel-mode">
+      <option value="guided" selected>Guiado</option>
+      <option value="free">Libre</option>
+    </select>
+  </label>
+  <label>
     <span class="settings-label">CATEGOR&Iacute;A</span>
     <select id="sel-cat">
       <option value="dml">&#128269; DML &mdash; SELECT / INSERT</option>
@@ -289,6 +307,8 @@ canvas#gc { display:block; width:100%; height:100%; }
       <option value="easy">F&aacute;cil</option>
       <option value="normal" selected>Normal</option>
       <option value="hard">Dif&iacute;cil</option>
+      <option value="expert">Experto</option>
+      <option value="insane">SQL Infernal</option>
     </select>
   </label>
   <label>
@@ -522,6 +542,7 @@ const CATEGORIES = {
       { query:['ALTER','TABLE','employees','ADD','COLUMN','email','VARCHAR'], hint:'&#128161; ALTER TABLE ADD COLUMN: anyade una columna nueva sin eliminar datos existentes', explain:'ALTER TABLE modifica tablas ya creadas. ADD COLUMN es la operacion mas segura: anade sin perder datos. Si hay millones de filas, puede ser costoso en tiempo.', decoys:['CREATE','DROP','SELECT','name','INT','DECIMAL','UNIQUE','NOT NULL'] },
       { query:['DROP','TABLE','temp_data'], hint:'&#128161; DROP TABLE elimina la tabla y TODOS sus datos. Completamente irreversible', explain:'DROP TABLE es irreversible. En produccion, haz siempre un backup antes. Usa DROP TABLE IF EXISTS para evitar errores si la tabla no existe.', decoys:['CREATE','ALTER','SELECT','users','employees','DATABASE','INDEX','COLUMN'] },
       { query:['CREATE','TABLE','orders','(','id','INT','PRIMARY KEY',',','total','DECIMAL',')'], hint:'&#128161; PRIMARY KEY: identifica de forma unica cada fila, nunca puede repetirse ni ser NULL', explain:'PRIMARY KEY garantiza la unicidad de cada registro y es el pilar de la integridad relacional. Normalmente es un INT AUTO_INCREMENT. Cada tabla deberia tener una.', decoys:['ALTER','SELECT','name','VARCHAR','UNIQUE','NOT NULL','user_id','FOREIGN KEY'] },
+      { query:['CREATE','TABLE','users','(','id','INT','AUTO_INCREMENT','PRIMARY KEY',',','name','VARCHAR',')'], hint:'&#128161; AUTO_INCREMENT genera ids automaticamente. Se usa normalmente junto a PRIMARY KEY', explain:'AUTO_INCREMENT hace que la base de datos asigne un id nuevo en cada insercion. En MySQL suele combinarse con una clave primaria: id INT AUTO_INCREMENT PRIMARY KEY.', decoys:['ALTER','DROP','email','DECIMAL','NOT NULL','UNIQUE','DEFAULT','orders'] },
       { query:['ALTER','TABLE','products','DROP','COLUMN','old_price'], hint:'&#128161; ALTER TABLE DROP COLUMN: elimina una columna y todos sus datos', explain:'Eliminar una columna borra todos sus datos definitivamente. Si hay indices o foreign keys que la referencian, tambien se eliminan o dan error.', decoys:['CREATE','ADD','SELECT','FROM','id','INT','name','COLUMN','ADD COLUMN'] },
       { query:['CREATE','INDEX','idx_name','ON','users','(','name',')'], hint:'&#128161; CREATE INDEX acelera las busquedas en columnas frecuentemente consultadas', explain:'Sin indice, SQL escanea TODA la tabla (full scan). Con indice, accede directamente. El coste es espacio en disco y escrituras mas lentas. Como el indice de un libro.', decoys:['ALTER','TABLE','employees','salary','WHERE','SELECT','UNIQUE','PRIMARY KEY'] },
     ],
@@ -548,13 +569,51 @@ const CATEGORIES = {
   },
 };
 
-const PREFS = { cat:'dml', diff:'normal', speed:1.0 };
+const PREFS = { mode:'guided', cat:'dml', diff:'normal', speed:1.0 };
+
+const DIFFICULTY = {
+  easy:   { label:'Fácil',       speed:0.75, spawn:1.18, needed:0.72, lives:5 },
+  normal: { label:'Normal',      speed:1.00, spawn:1.00, needed:0.58, lives:3 },
+  hard:   { label:'Difícil',     speed:1.30, spawn:0.84, needed:0.48, lives:3 },
+  expert: { label:'Experto',     speed:1.58, spawn:0.70, needed:0.38, lives:2 },
+  insane: { label:'SQL Infernal',speed:1.95, spawn:0.58, needed:0.28, lives:1 },
+};
+
+const FREE_VALID_EXPRESSIONS = [
+  { query:['SELECT','*','FROM','users'], explain:'SELECT * FROM users es una consulta válida básica.' },
+  { query:['SELECT','name','FROM','employees'], explain:'Selecciona una columna concreta desde una tabla.' },
+  { query:['SELECT','name',',','email','FROM','customers','ORDER BY','name','LIMIT','10'], explain:'Consulta válida con selección múltiple, ordenación y límite.' },
+  { query:['SELECT','COUNT(*)','FROM','users','WHERE','active','=','1'], explain:'Cuenta usuarios activos mediante WHERE.' },
+  { query:['SELECT','name',',','COUNT(*)','FROM','orders','GROUP BY','name'], explain:'Agrupa pedidos por nombre y calcula un conteo.' },
+  { query:['SELECT','name',',','SUM(salary)','FROM','employees','GROUP BY','name','HAVING','SUM(salary)','>','100000'], explain:'HAVING filtra grupos después de GROUP BY.' },
+  { query:['CREATE','TABLE','users','(','id','INT',',','name','VARCHAR',')'], explain:'CREATE TABLE con columnas y tipos de dato válidos.' },
+  { query:['CREATE','TABLE','orders','(','id','INT','PRIMARY KEY',',','total','DECIMAL',')'], explain:'Crea una tabla con clave primaria y campo decimal.' },
+  { query:['CREATE','TABLE','users','(','id','INT','AUTO_INCREMENT','PRIMARY KEY',',','name','VARCHAR',')'], explain:'Crea una tabla válida con id autoincremental y clave primaria.' },
+  { query:['CREATE','TABLE','employees','(','id','INT','AUTO_INCREMENT','PRIMARY KEY',',','email','VARCHAR','UNIQUE',')'], explain:'Crea una tabla válida con AUTO_INCREMENT, PRIMARY KEY y UNIQUE.' },
+  { query:['ALTER','TABLE','employees','ADD','COLUMN','email','VARCHAR'], explain:'ALTER TABLE ADD COLUMN añade una columna válida.' },
+  { query:['DROP','TABLE','temp_data'], explain:'DROP TABLE elimina una tabla completa.' },
+  { query:['CREATE','INDEX','idx_name','ON','users','(','name',')'], explain:'CREATE INDEX crea un índice válido sobre una columna.' },
+  { query:['CREATE','TRIGGER','log_insert','BEFORE','INSERT','ON','users','FOR EACH ROW','BEGIN','END'], explain:'Trigger válido antes de insertar en users.' },
+  { query:['CREATE','TRIGGER','del_audit','AFTER','DELETE','ON','orders','FOR EACH ROW','BEGIN','END'], explain:'Trigger válido después de borrar en orders.' },
+  { query:['CREATE','PROCEDURE','get_users','(',')','BEGIN','SELECT','*','FROM','users',';','END'], explain:'Procedimiento válido que encapsula una consulta.' },
+  { query:['DELIMITER','//','CREATE','PROCEDURE','clear_logs','(',')','BEGIN','DELETE','FROM','logs',';','END','//'], explain:'Procedimiento válido con DELIMITER para bloques BEGIN/END.' },
+];
+
+function activeDifficulty() {
+  return DIFFICULTY[PREFS.diff] || DIFFICULTY.normal;
+}
 
 function loadSettings() {
   try {
+    const mode  = localStorage.getItem('sqltris_mode');
     const cat   = localStorage.getItem('sqltris_cat');
     const diff  = localStorage.getItem('sqltris_diff');
     const speed = localStorage.getItem('sqltris_speed');
+
+    if (mode && ['guided', 'free'].includes(mode)) {
+      PREFS.mode = mode;
+      document.getElementById('sel-mode').value = mode;
+    }
 
     if (cat && CATEGORIES[cat]) {
       PREFS.cat = cat;
@@ -565,7 +624,7 @@ function loadSettings() {
       localStorage.removeItem('sqltris_cat');
     }
 
-    if (diff && ['easy', 'normal', 'hard'].includes(diff)) {
+    if (diff && DIFFICULTY[diff]) {
       PREFS.diff = diff;
       document.getElementById('sel-diff').value = diff;
     }
@@ -575,6 +634,7 @@ function loadSettings() {
       document.getElementById('sel-speed').value = speed;
     }
   } catch(e) {
+    PREFS.mode = 'guided';
     PREFS.cat = 'dml';
     PREFS.diff = 'normal';
     PREFS.speed = 1.0;
@@ -585,6 +645,7 @@ function loadSettings() {
 
 function savePrefs() {
   try {
+    localStorage.setItem('sqltris_mode',  PREFS.mode);
     localStorage.setItem('sqltris_cat',   PREFS.cat);
     localStorage.setItem('sqltris_diff',  PREFS.diff);
     localStorage.setItem('sqltris_speed', String(PREFS.speed));
@@ -596,20 +657,27 @@ function updateCatDisplay() {
 
   const pill = document.getElementById('cat-pill-start');
   if (pill) {
-    pill.textContent = cat.icon + ' ' + cat.label;
-    pill.style.color = cat.color;
-    pill.style.borderColor = cat.color;
+    pill.textContent = (PREFS.mode === 'free' ? '∞ LIBRE · ' : '') + cat.icon + ' ' + cat.label;
+    pill.style.color = PREFS.mode === 'free' ? 'var(--amber)' : cat.color;
+    pill.style.borderColor = PREFS.mode === 'free' ? 'var(--amber)' : cat.color;
     pill.style.boxShadow = '0 0 10px currentColor';
   }
 
   const descEl = document.getElementById('cat-desc-start');
-  if (descEl) descEl.innerHTML = cat.desc;
+  if (descEl) {
+    descEl.innerHTML = PREFS.mode === 'free'
+      ? 'Modo libre: construye cualquier expresión SQL válida. La puntuación depende de la longitud.'
+      : cat.desc;
+  }
 
   document.querySelectorAll('.ref-tab').forEach(t => t.classList.remove('active'));
   const activeTab = document.getElementById('ref-' + PREFS.cat);
   if (activeTab) activeTab.classList.add('active');
 }
 
+document.getElementById('sel-mode').addEventListener('change', e => {
+  PREFS.mode = e.target.value; savePrefs(); updateCatDisplay();
+});
 document.getElementById('sel-cat').addEventListener('change', e => {
   PREFS.cat = e.target.value; savePrefs(); updateCatDisplay();
 });
@@ -627,7 +695,7 @@ function resetState() {
     running:       false,
     level:         1,
     score:         0,
-    lives:         3,
+    lives:         activeDifficulty().lives,
     combo:         1,
     missStreak:    0,
     cursor:        Math.floor(COLS / 2),
@@ -643,6 +711,9 @@ function resetState() {
     shakeTimer:    0,
     frameCount:    0,
     keyTimer:      { L:0, R:0 },
+    freeCurrent:   [],
+    freeCompleted: [],
+    freeBroken:    0,
   };
 }
 
@@ -661,7 +732,56 @@ function getActiveChallenges() {
   return (CATEGORIES[PREFS.cat] || CATEGORIES.dml).challenges;
 }
 
+function getFreeExpressions() {
+  if (PREFS.cat === 'dml') return FREE_VALID_EXPRESSIONS.filter(e => e.query[0] === 'SELECT');
+  if (PREFS.cat === 'ddl') return FREE_VALID_EXPRESSIONS.filter(e => ['CREATE','ALTER','DROP'].includes(e.query[0]) && !e.query.includes('TRIGGER') && !e.query.includes('PROCEDURE'));
+  if (PREFS.cat === 'proc') return FREE_VALID_EXPRESSIONS.filter(e => e.query.includes('TRIGGER') || e.query.includes('PROCEDURE') || e.query.includes('DELIMITER'));
+  return FREE_VALID_EXPRESSIONS;
+}
+
+function samePrefix(query, prefix) {
+  if (prefix.length > query.length) return false;
+  return prefix.every((tok, i) => tok === query[i]);
+}
+
+function freeCandidates() {
+  return getFreeExpressions().filter(expr => samePrefix(expr.query, S.freeCurrent));
+}
+
+function freeNextTokens() {
+  const set = new Set();
+  freeCandidates().forEach(expr => {
+    if (expr.query.length > S.freeCurrent.length) set.add(expr.query[S.freeCurrent.length]);
+  });
+  return Array.from(set);
+}
+
+function freeCompletedExpression() {
+  return getFreeExpressions().find(expr =>
+    expr.query.length === S.freeCurrent.length && samePrefix(expr.query, S.freeCurrent)
+  );
+}
+
 function loadChallenge(idx) {
+  if (PREFS.mode === 'free') {
+    S.challenge = null;
+    S.neededIdx = 0;
+    S.collected = [];
+    S.tokens = [];
+    S.spawnTimer = 0;
+    S.freeCurrent = [];
+    S.freeCompleted = [];
+    renderTarget();
+    renderProgress();
+    setHint('&#8734; Modo libre: captura tokens para formar una expresión SQL válida. Si capturas un token inválido, se rompe el bloque actual y el anterior.', 'var(--amber)');
+
+    document.getElementById('challenge-num').innerHTML =
+      '&#8734; LIBRE &middot; <span style="color:var(--green)">' + activeDifficulty().label + '</span>';
+    document.getElementById('challenge-num').style.color = 'var(--amber)';
+    document.getElementById('challenge-num').style.borderColor = 'var(--amber)';
+    return;
+  }
+
   const challenges = getActiveChallenges();
   const ch = challenges[idx % challenges.length];
   S.challenge  = ch;
@@ -685,8 +805,19 @@ function loadChallenge(idx) {
 
 function renderTarget() {
   const el = document.getElementById('target-tokens');
-  const ch = S.challenge;
   el.innerHTML = '';
+
+  if (PREFS.mode === 'free') {
+    const next = freeNextTokens();
+    const label = document.createElement('span');
+    label.className = 'token-badge next';
+    label.textContent = next.length ? 'SIGUIENTES VÁLIDOS: ' + next.join(' / ') : 'INICIO: SELECT / CREATE / ALTER / DROP / DELIMITER';
+    label.style.cssText = 'color:var(--amber);border-color:var(--amber);background:#1a0f00;';
+    el.appendChild(label);
+    return;
+  }
+
+  const ch = S.challenge;
   ch.query.forEach((tok, i) => {
     const c    = COLORS[tokenType(tok)];
     const span = document.createElement('span');
@@ -700,6 +831,20 @@ function renderTarget() {
 
 function renderProgress() {
   const el = document.getElementById('qprog');
+
+  if (PREFS.mode === 'free') {
+    const completed = (S.freeCompleted || []).map((block, idx) => {
+      return '<span class="free-block">' + (idx + 1) + ': ' + block.query.join(' ') + '</span>';
+    }).join('');
+
+    const current = S.freeCurrent && S.freeCurrent.length
+      ? '<span class="free-current">' + S.freeCurrent.join(' ') + '</span>'
+      : '<span style="color:rgba(0,255,65,0.2)">-- construye una expresión libre --</span>';
+
+    el.innerHTML = completed + current;
+    return;
+  }
+
   if (!S.collected.length) {
     el.innerHTML = '<span style="color:rgba(0,255,65,0.2)">-- escribe tu query --</span>';
     return;
@@ -725,16 +870,35 @@ function updateHUD() {
 }
 
 function spawnToken() {
-  const ch     = S.challenge;
-  const needed = ch.query[S.neededIdx];
-
   let text;
-  if (Math.random() < 0.38 || S.tokens.length === 0) {
-    text = needed;
+  let needed = null;
+
+  if (PREFS.mode === 'free') {
+    const next = freeNextTokens();
+    const diff = activeDifficulty();
+    const useValid = next.length && (Math.random() < diff.needed || S.tokens.length === 0);
+
+    if (useValid) {
+      text = next[Math.floor(Math.random() * next.length)];
+      needed = text;
+    } else {
+      const catDecoys = (CATEGORIES[PREFS.cat] || CATEGORIES.dml).decoys || [];
+      const allTokens = Array.from(new Set(getFreeExpressions().flatMap(e => e.query).concat(catDecoys)));
+      const invalid = allTokens.filter(tok => !next.includes(tok));
+      const pool = invalid.length ? invalid : allTokens;
+      text = pool[Math.floor(Math.random() * pool.length)];
+    }
   } else {
-    const catDecoys = (CATEGORIES[PREFS.cat] || CATEGORIES.dml).decoys || [];
-    const pool = [...(ch.decoys || []), ...catDecoys].filter(d => d !== needed);
-    text = pool[Math.floor(Math.random() * pool.length)];
+    const ch = S.challenge;
+    needed = ch.query[S.neededIdx];
+
+    if (Math.random() < 0.38 || S.tokens.length === 0) {
+      text = needed;
+    } else {
+      const catDecoys = (CATEGORIES[PREFS.cat] || CATEGORIES.dml).decoys || [];
+      const pool = [...(ch.decoys || []), ...catDecoys].filter(d => d !== needed);
+      text = pool[Math.floor(Math.random() * pool.length)];
+    }
   }
 
   const busy = new Set(S.tokens.map(t => t.col));
@@ -747,11 +911,70 @@ function spawnToken() {
     type:     tokenType(text),
     col,
     y:        -1,
-    isNeeded: text === needed,
+    isNeeded: PREFS.mode === 'free' ? freeNextTokens().includes(text) : text === needed,
   });
 }
 
 function collectToken(tok) {
+  if (PREFS.mode === 'free') {
+    const tentative = [...S.freeCurrent, tok.text];
+    const stillValid = getFreeExpressions().some(expr => samePrefix(expr.query, tentative));
+
+    if (stillValid) {
+      S.freeCurrent = tentative;
+      S.collected = tentative;
+      S.missStreak = 0;
+      S.combo = Math.min(12, S.combo + 1);
+
+      const completed = freeCompletedExpression();
+      if (completed) {
+        const len = completed.query.length;
+        const bonus = len * len * 25 * S.combo * S.level;
+        S.score += bonus;
+        S.freeCompleted.push({ query:[...completed.query], score:bonus, explain:completed.explain });
+        S.freeCurrent = [];
+        S.collected = [];
+        spawnParticles(tok.col, true);
+        renderTarget();
+        renderProgress();
+        updateHUD();
+        setHint('&#10003; Expresión válida: <strong>' + completed.query.join(' ') + '</strong> &middot; +' + bonus + ' pts por longitud ' + len, 'var(--green)');
+      } else {
+        const pts = 25 * S.combo * S.level;
+        S.score += pts;
+        spawnParticles(tok.col, true);
+        renderTarget();
+        renderProgress();
+        updateHUD();
+        setHint('&#10003; Prefijo válido. Sigue construyendo la expresión. +' + pts + ' pts', 'var(--green)');
+      }
+      return;
+    }
+
+    S.lives--;
+    S.missStreak++;
+    S.combo = Math.max(1, S.combo - 2);
+    S.shakeTimer = 18;
+    S.freeBroken++;
+
+    const brokenCurrent = S.freeCurrent.length ? S.freeCurrent.join(' ') : tok.text;
+    const brokenPrevious = S.freeCompleted.pop();
+
+    S.freeCurrent = [];
+    S.collected = [];
+
+    spawnParticles(tok.col, false);
+    renderTarget();
+    renderProgress();
+    updateHUD();
+
+    const prevMsg = brokenPrevious ? ' También se rompe el bloque anterior: <strong>' + brokenPrevious.query.join(' ') + '</strong>.' : '';
+    setHint('&#10007; Token inválido: <strong>' + tok.text + '</strong>. Se rompe el bloque actual: <strong>' + brokenCurrent + '</strong>.' + prevMsg, 'var(--red)');
+
+    if (S.lives <= 0) setTimeout(onGameOver, 500);
+    return;
+  }
+
   const needed = S.challenge.query[S.neededIdx];
 
   if (tok.text === needed) {
@@ -833,8 +1056,12 @@ function draw() {
   ctx.fillStyle   = 'rgba(0,255,65,0.7)';
   ctx.fillRect(cx + 3, canvas.height - ch, cw - 6, 3);
 
-  if (S.challenge && S.neededIdx < S.challenge.query.length) {
-    const needed    = S.challenge.query[S.neededIdx];
+  const ghostToken = PREFS.mode === 'free'
+    ? freeNextTokens()[0]
+    : (S.challenge && S.neededIdx < S.challenge.query.length ? S.challenge.query[S.neededIdx] : null);
+
+  if (ghostToken) {
+    const needed    = ghostToken;
     const c         = COLORS[tokenType(needed)];
     const isGhostGiant = GIANT_SYMBOLS.has(needed);
     const ghostFs   = isGhostGiant ? Math.min(ch * 0.62, cw * 0.52) : Math.max(7, Math.min(12, cw / Math.max(1, needed.length) * 1.35));
@@ -851,7 +1078,9 @@ function draw() {
     const c = COLORS[tok.type];
     const pad = 3;
 
-    const isNext = tok.isNeeded && S.challenge && tok.text === S.challenge.query[S.neededIdx];
+    const isNext = PREFS.mode === 'free'
+      ? freeNextTokens().includes(tok.text)
+      : (tok.isNeeded && S.challenge && tok.text === S.challenge.query[S.neededIdx]);
 
     ctx.fillStyle = c.bg;
     ctx.fillRect(x + pad, y + pad, cw - pad*2, ch - pad*2);
@@ -910,13 +1139,13 @@ function gameLoop() {
     }
   } else { S.keyTimer.R = 0; }
 
-  const diffMult = PREFS.diff === 'easy' ? 0.75 : PREFS.diff === 'hard' ? 1.3 : 1.0;
+  const diffMult = activeDifficulty().speed;
 
   const adaptMult = Math.max(0.82, Math.min(1.14, 1 + (S.combo - 1) * 0.02 - S.missStreak * 0.03));
 
   const activeRPS = S.baseSpeed * diffMult * PREFS.speed * adaptMult;
   const fallDelta = (activeRPS / 60) * (keys.D ? 7 : 1);
-  const activeSpawnInterval = Math.max(20, S.spawnInterval / (diffMult * PREFS.speed));
+  const activeSpawnInterval = Math.max(16, (S.spawnInterval * activeDifficulty().spawn) / (diffMult * PREFS.speed));
 
   S.spawnTimer++;
   if (S.spawnTimer >= activeSpawnInterval) {
@@ -928,7 +1157,9 @@ function gameLoop() {
   S.tokens.forEach(tok => {
     tok.y += fallDelta;
 
-    if (S.challenge && S.neededIdx < S.challenge.query.length) {
+    if (PREFS.mode === 'free') {
+      tok.isNeeded = freeNextTokens().includes(tok.text);
+    } else if (S.challenge && S.neededIdx < S.challenge.query.length) {
       tok.isNeeded = (tok.text === S.challenge.query[S.neededIdx]);
     }
 
@@ -972,7 +1203,9 @@ function onGameOver() {
   if (rafId) cancelAnimationFrame(rafId);
   document.getElementById('final-msg').innerHTML =
     'Puntuaci&oacute;n: <strong>' + S.score + '</strong> pts' +
-    ' &nbsp;&middot;&nbsp; Niveles: ' + (S.level - 1);
+    ' &nbsp;&middot;&nbsp; ' + (PREFS.mode === 'free'
+      ? 'Bloques v&aacute;lidos: ' + (S.freeCompleted ? S.freeCompleted.length : 0)
+      : 'Niveles: ' + (S.level - 1));
   document.getElementById('ov-gameover').style.display = 'flex';
 }
 
