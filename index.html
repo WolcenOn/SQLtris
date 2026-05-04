@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>SQL-TRIS v2 PRO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green:  #00ff41;
+  --cyan:   #00f3ff;
+  --amber:  #ffb700;
+  --red:    #ff3131;
+  --purple: #bc13fe;
+  --dim:    rgba(0,255,65,0.25);
+  --bg:     #020c02;
+  --panel:  #060f06;
+}
+*, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+
+body {
+  background: var(--bg);
+  color: var(--green);
+  font-family: 'Share Tech Mono', monospace;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+}
+body::after {
+  content:'';
+  position:fixed; inset:0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px);
+  pointer-events:none; z-index:200;
+}
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.65) 100%);
+  pointer-events:none; z-index:199;
+}
+
+.header {
+  width:100%; max-width:870px;
+  padding: 8px 16px;
+  display:flex; justify-content:space-between; align-items:center;
+  border-bottom: 1px solid var(--dim);
+}
+
+/* [MEJORA: Nueva fila de configuraciones responsiva] */
+.settings-row {
+  width: 100%; max-width: 870px;
+  display: flex; gap: 15px; justify-content: center; align-items: center;
+  padding: 6px 16px; background: #030803;
+  border-bottom: 1px solid var(--dim);
+  font-size: 0.7rem; color: var(--dim);
+  flex-wrap: wrap;
+}
+.settings-row label {
+  display: flex; align-items: center; gap: 5px;
+}
+.settings-row select {
+  background: var(--panel); color: var(--green);
+  border: 1px solid var(--dim); padding: 3px 8px;
+  font-family: 'Share Tech Mono', monospace;
+  border-radius: 3px; cursor: pointer; transition: all 0.2s;
+}
+.settings-row select:focus, .settings-row select:hover {
+  outline: none; border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,243,255,0.2);
+}
+
+.logo {
+  font-family:'Orbitron', monospace;
+  font-size: clamp(1rem,3vw,1.55rem);
+  font-weight:900; letter-spacing:6px;
+  text-shadow: 0 0 16px var(--green), 0 0 32px var(--green);
+  animation: logoFlicker 9s infinite;
+}
+@keyframes logoFlicker {
+  0%,93%,95.5%,97%,100%{ opacity:1; }
+  94%,96%{ opacity:0.65; }
+}
+.hud { display:flex; gap:14px; }
+.hud-item { display:flex; flex-direction:column; align-items:center; }
+.hud-label { color:var(--dim); font-size:0.53rem; letter-spacing:3px; }
+.hud-value { color:var(--cyan); font-size:0.95rem; font-weight:bold; transition:color 0.3s; }
+
+.main {
+  display:flex; gap:10px;
+  padding:9px 12px;
+  max-width:870px; width:100%;
+  flex:1;
+}
+.game-panel { flex:1; display:flex; flex-direction:column; gap:7px; min-width:0; }
+
+.target-display {
+  background:var(--panel);
+  border:1px solid var(--dim);
+  padding:8px 12px;
+  border-radius:4px;
+  flex-shrink:0;
+}
+.section-label {
+  color:var(--dim); font-size:0.56rem; letter-spacing:3px; margin-bottom:5px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.target-tokens { display:flex; flex-wrap:wrap; gap:4px; min-height:26px; }
+.token-badge {
+  padding:3px 7px; border-radius:3px;
+  font-size:0.7rem; font-weight:bold;
+  border:1px solid; font-family:'Share Tech Mono',monospace;
+  transition: all 0.25s; white-space:nowrap;
+}
+.token-badge.done   { opacity:0.28; text-decoration:line-through; filter:grayscale(1); }
+.token-badge.future { opacity:0.42; }
+.token-badge.next   { animation: nextPulse 0.65s infinite alternate; }
+@keyframes nextPulse {
+  from { transform:scale(1);    box-shadow: 0 0 5px currentColor; }
+  to   { transform:scale(1.13); box-shadow: 0 0 18px currentColor, 0 0 32px currentColor; }
+}
+
+.canvas-wrapper {
+  position:relative; flex:1; min-height:0;
+  border:1px solid rgba(0,255,65,0.18);
+  overflow:hidden; border-radius:4px;
+  min-height: 320px;
+}
+canvas#gc { display:block; width:100%; height:100%; }
+
+.query-progress {
+  background:var(--panel); border:1px solid var(--dim);
+  padding:6px 12px; border-radius:4px;
+  min-height:33px; flex-shrink:0; line-height:1.6;
+}
+
+.hint-bar {
+  padding:5px 12px; border-radius:4px;
+  border:1px solid var(--dim);
+  font-size:0.67rem; color:var(--amber);
+  background:var(--panel);
+  flex-shrink:0; min-height:26px;
+  transition: color 0.3s;
+}
+
+.controls-row {
+  display:grid; grid-template-columns:1fr 1fr 1fr;
+  gap:6px; flex-shrink:0;
+}
+.ctrl-btn {
+  padding:12px 5px;
+  background:#071007; color:var(--green);
+  border:1px solid var(--dim);
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.85rem; cursor:pointer; border-radius:4px;
+  transition:all 0.1s; user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.ctrl-btn:active, .ctrl-btn.pressed {
+  background:var(--green); color:#000;
+  box-shadow:0 0 16px var(--green); border-color:var(--green);
+}
+
+.ref-panel {
+  width:182px; flex-shrink:0;
+  background:var(--panel); border:1px solid var(--dim);
+  padding:10px; border-radius:4px;
+  overflow-y:auto; font-size:0.66rem;
+  max-height:640px;
+}
+.ref-title {
+  font-family:'Orbitron',monospace; font-size:0.53rem;
+  letter-spacing:3px; color:var(--cyan);
+  margin-bottom:8px; padding-bottom:5px;
+  border-bottom:1px solid var(--dim);
+}
+.ref-group { margin-bottom:11px; }
+.ref-group-label { color:var(--dim); font-size:0.53rem; letter-spacing:2px; margin-bottom:5px; }
+.ref-entry { margin-bottom:7px; }
+.ref-kw  { font-weight:bold; }
+.ref-desc{ color:rgba(0,255,65,0.52); font-size:0.6rem; margin-top:1px; line-height:1.35; }
+.ref-example { color:var(--amber); font-size:0.58rem; margin-top:2px; }
+
+.overlay {
+  position:absolute; inset:0;
+  background:rgba(2,12,2,0.93);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:13px; z-index:10; padding:20px;
+}
+.overlay h2 {
+  font-family:'Orbitron',monospace;
+  font-size:clamp(0.95rem,4vw,1.5rem);
+  text-shadow: 0 0 20px currentColor;
+}
+.overlay p {
+  font-size:0.73rem; text-align:center;
+  max-width:290px; line-height:1.65;
+  color:rgba(0,255,65,0.72);
+}
+.overlay-btn {
+  padding:8px 26px; background:transparent;
+  color:var(--green); border:2px solid var(--green);
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.9rem; letter-spacing:3px;
+  cursor:pointer; border-radius:3px;
+  transition:all 0.2s; margin-top:3px;
+}
+.overlay-btn:hover {
+  background:var(--green); color:#000;
+  box-shadow:0 0 22px var(--green);
+}
+.completed-query {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.77rem; color:var(--cyan);
+  background:rgba(0,243,255,0.07);
+  border:1px solid var(--cyan);
+  padding:6px 13px; border-radius:3px;
+  text-align:center; max-width:280px;
+  word-break:break-all;
+}
+.level-bonus { color:var(--amber); font-size:0.78rem; font-weight:bold; text-align:center; }
+
+@media(max-width:600px){
+  .main { flex-direction:column; padding:5px; gap:5px; }
+  .ref-panel {
+    width:100%; max-height:120px;
+    display:flex; flex-wrap:wrap; gap:8px; padding:6px 10px;
+    overflow-x:auto; overflow-y:hidden;
+    flex-direction:row; align-items:flex-start;
+  }
+  .ref-group { margin-bottom:0; flex-shrink:0; }
+  .ref-title  { display:none; }
+  .canvas-wrapper { min-height:280px; }
+  .settings-row { justify-content: space-between; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">SQL-TRIS</div>
+  <div class="hud">
+    <div class="hud-item">
+      <span class="hud-label">NIVEL</span>
+      <span class="hud-value" id="lvl">1</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">SCORE</span>
+      <span class="hud-value" id="sc">0</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">VIDAS</span>
+      <span class="hud-value" id="hp">&#9829;&#9829;&#9829;</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">COMBO</span>
+      <span class="hud-value" id="combo" style="color:var(--amber)">x1</span>
+    </div>
+  </div>
+</header>
+
+<div class="settings-row">
+  <label>DIFICULTAD:
+    <select id="sel-diff">
+      <option value="easy">Fácil</option>
+      <option value="normal">Normal</option>
+      <option value="hard">Difícil</option>
+    </select>
+  </label>
+  <label>VELOCIDAD GLOBAL:
+    <select id="sel-speed">
+      <option value="0.6">Lenta</option>
+      <option value="1.0">Normal</option>
+      <option value="1.5">Rápida</option>
+      <option value="2.2">Muy Rápida</option>
+    </select>
+  </label>
+</div>
+
+<div class="main">
+  <div class="game-panel">
+
+    <div class="target-display">
+      <div class="section-label">
+        <span>&#9654; OBJETIVO SQL</span>
+        <span id="challenge-num" style="color:var(--amber);font-size:0.58rem"></span>
+      </div>
+      <div class="target-tokens" id="target-tokens"></div>
+    </div>
+
+    <div class="canvas-wrapper" id="cw">
+      <canvas id="gc"></canvas>
+
+      <div class="overlay" id="ov-start">
+        <h2 style="color:var(--green)">SQL-TRIS PRO</h2>
+        <p>Captura los tokens SQL en el <strong style="color:var(--cyan)">orden correcto</strong> para construir consultas v&#225;lidas.<br><br>
+        Mueve el cursor con <strong>&#8592; &#8594;</strong> y pos&#237;cionate en la columna del token que necesitas.<br><br>
+        Los tokens <span style="color:var(--cyan);font-weight:bold">brillantes</span> son los que debes capturar ahora.</p>
+        <button class="overlay-btn" id="btn-start">&#9654; INICIAR</button>
+      </div>
+
+      <div class="overlay" id="ov-level" style="display:none">
+        <h2 style="color:var(--cyan)">&#10003; QUERY V&#193;LIDA</h2>
+        <div class="completed-query" id="completed-q"></div>
+        <p id="level-exp"></p>
+        <div class="level-bonus" id="level-bonus"></div>
+        <button class="overlay-btn" id="btn-next">SIGUIENTE NIVEL &#9654;</button>
+      </div>
+
+      <div class="overlay" id="ov-gameover" style="display:none">
+        <h2 style="color:var(--red)">GAME OVER</h2>
+        <p id="final-msg"></p>
+        <button class="overlay-btn" id="btn-restart">&#8635; REINICIAR</button>
+      </div>
+    </div>
+
+    <div class="query-progress">
+      <div class="section-label">&#9654; QUERY EN CONSTRUCCI&#211;N</div>
+      <div id="qprog"></div>
+    </div>
+
+    <div class="hint-bar" id="hint"></div>
+
+    <div class="controls-row">
+      <button class="ctrl-btn" id="btnL">&#9668; IZQUIERDA</button>
+      <button class="ctrl-btn" id="btnD">&#11015; CA&#205;DA R&#193;PIDA</button>
+      <button class="ctrl-btn" id="btnR">DERECHA &#9658;</button>
+    </div>
+  </div>
+
+  <div class="ref-panel">
+    <div class="ref-title">&#9658; SQL REFERENCIA</div>
+
+    <div class="ref-group">
+      <div class="ref-group-label">ESTRUCTURA B&#193;SICA</div>
+      <div class="ref-entry">
+        <div class="ref-kw" style="color:var(--cyan)">SELECT</div>
+        <div class="ref-desc">Columnas a mostrar</div>
+        <div class="ref-example">SELECT name, age</div>
+      </div>
+      <div class="ref-entry">
+        <div class="ref-kw" style="color:var(--cyan)">FROM</div>
+        <div class="ref-desc">Tabla de origen</div>
+        <div class="ref-example">FROM employees</div>
+      </div>
+      <div class="ref-entry">
+        <div class="ref-kw" style="color:var(--cyan)">WHERE</div>
+        <div class="ref-desc">Filtrar filas</div>
+        <div class="ref-example">WHERE age &gt; 18</div>
+      </div>
+    </div>
+
+    <div class="ref-group">
+      <div class="ref-group-label">ORDENAR / LIMITAR</div>
+      <div class="ref-entry">
+        <div class="ref-kw" style="color:var(--amber)">ORDER BY</div>
+        <div class="ref-desc">Ordena resultados</div>
+        <div class="ref-example">ORDER BY name</div>
+      </div>
+      <div class="ref-entry">
+        <div class="ref-kw" style="color:var(--amber)">LIMIT</div>
+        <div class="ref-desc">N&#186; m&#225;ximo de filas</div>
+        <div class="ref-example">LIMIT 10</div>
+      </div>
+    </div>
+
+    <div class="ref-group">
+      <div class="ref-group-label">AGREGACI&#211;N</div>
+      <div class="ref-entry">
+        <div class="ref-kw" style="color:var(--green)">COUNT(*)</div>
+        <div class="ref-desc">Cuenta total de filas</div>
+      </div>
+      <div class="ref-entry">
+        <div class="ref-kw" style="color:var(--green)">GROUP BY</div>
+        <div class="ref-desc">Agrupa filas iguales</div>
+      </div>
+      <div class="ref-entry">
+        <div class="ref-kw" style="color:var(--green)">HAVING</div>
+        <div class="ref-desc">Filtra grupos (&#8776;WHERE para grupos)</div>
+      </div>
+    </div>
+
+    <div class="ref-group">
+      <div class="ref-group-label">OPERADORES</div>
+      <div class="ref-entry">
+        <div class="ref-kw" style="color:var(--red)">=  &gt;  &lt;  !=</div>
+        <div class="ref-desc">Comparaci&#243;n</div>
+      </div>
+      <div class="ref-entry">
+        <div class="ref-kw" style="color:var(--red)">LIKE</div>
+        <div class="ref-desc">Patr&#243;n de texto</div>
+        <div class="ref-example">'%admin%'</div>
+      </div>
+      <div class="ref-entry">
+        <div class="ref-kw" style="color:var(--red)">AND  OR</div>
+        <div class="ref-desc">Combinar condiciones</div>
+      </div>
+    </div>
+
+    <div class="ref-group">
+      <div class="ref-group-label">ORDEN SQL</div>
+      <div class="ref-desc" style="line-height:1.9;color:rgba(0,255,65,0.62)">
+        1. SELECT<br>2. FROM<br>3. WHERE<br>4. GROUP BY<br>5. HAVING<br>6. ORDER BY<br>7. LIMIT
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────
+const COLS = 7;
+const ROWS = 14;
+
+const COLORS = {
+  kw:    { bg:'#001833', border:'#00f3ff', text:'#00f3ff' },
+  table: { bg:'#1a0f00', border:'#ffb700', text:'#ffb700' },
+  col:   { bg:'#001800', border:'#00ff41', text:'#00ff41' },
+  op:    { bg:'#1a0000', border:'#ff3131', text:'#ff3131' },
+  val:   { bg:'#0d0019', border:'#bc13fe', text:'#bc13fe' },
+  wild:  { bg:'#141414', border:'#bbbbbb', text:'#ffffff' },
+  sep:   { bg:'#111111', border:'#888888', text:'#aaaaaa' },
+};
+
+function tokenType(t) {
+  const kw   = ['SELECT','FROM','WHERE','ORDER BY','GROUP BY','LIMIT','HAVING','JOIN','ON','AS','AND','OR','NOT','IN','LIKE'];
+  const ops  = ['=','>','<','>=','<=','!='];
+  const wild = ['*','COUNT(*)','SUM(salary)','AVG(age)','MAX(salary)'];
+  const sep  = [','];
+  if (kw.includes(t))   return 'kw';
+  if (ops.includes(t))  return 'op';
+  if (wild.includes(t)) return 'wild';
+  if (sep.includes(t))  return 'sep';
+  if (/^\d/.test(t) || t.startsWith("'")) return 'val';
+  if (/^(users|employees|orders|products|customers|departments)$/.test(t)) return 'table';
+  return 'col';
+}
+
+// ── CHALLENGES ─────────────────────────────────────
+const CHALLENGES = [
+  {
+    query:   ['SELECT','*','FROM','users'],
+    hint:    '&#128161; SELECT * FROM obtiene TODAS las columnas de la tabla users',
+    explain: 'El asterisco (*) es un comod&#237;n que significa "todas las columnas". Es la forma m&#225;s sencilla de consultar una tabla completa.',
+    decoys:  ['WHERE','ORDER BY','name','employees','=','LIMIT'],
+  },
+  {
+    query:   ['SELECT','name','FROM','employees'],
+    hint:    '&#128161; Pide solo la columna "name". M&#225;s eficiente que SELECT *',
+    explain: 'Nombrar columnas concretas es mejor pr&#225;ctica: transfiere menos datos y hace el c&#243;digo m&#225;s legible.',
+    decoys:  ['*','users','WHERE','salary',',','age','ORDER BY'],
+  },
+  {
+    query:   ['SELECT','*','FROM','orders','WHERE','status','=','active'],
+    hint:    '&#128161; WHERE filtra filas. Solo devuelve pedidos con status = active',
+    explain: 'WHERE eval&#250;a cada fila y solo incluye las que cumplen la condici&#243;n. Sin WHERE, obtendr&#237;as TODOS los pedidos.',
+    decoys:  ['name','users','ORDER BY','>','inactive','LIMIT','AND'],
+  },
+  {
+    query:   ['SELECT','name',',','salary','FROM','employees','WHERE','salary','>','50000'],
+    hint:    '&#128161; Varias columnas van separadas por coma. WHERE con &gt; filtra por rango num&#233;rico',
+    explain: 'La coma separa columnas en SELECT. Los operadores &gt; &lt; = filtran por comparaci&#243;n num&#233;rica en WHERE.',
+    decoys:  ['*','users','=','<','ORDER BY','active','AND'],
+  },
+  {
+    query:   ['SELECT','*','FROM','products','ORDER BY','price'],
+    hint:    '&#128161; ORDER BY ordena el resultado. Por defecto es ASC (ascendente)',
+    explain: 'ORDER BY reordena las filas del resultado. ASC = menor a mayor (default), DESC = mayor a menor.',
+    decoys:  ['WHERE','name','users','salary','=','active','LIMIT','AND'],
+  },
+  {
+    query:   ['SELECT','COUNT(*)','FROM','users','WHERE','active','=','1'],
+    hint:    '&#128161; COUNT(*) devuelve el n&#250;mero de filas que cumplen la condici&#243;n WHERE',
+    explain: 'Las funciones de agregaci&#243;n (COUNT, SUM, AVG, MAX, MIN) calculan un valor sobre un conjunto de filas.',
+    decoys:  ['name','employees','ORDER BY','*','>','salary',','],
+  },
+  {
+    query:   ['SELECT','name',',','email','FROM','customers','ORDER BY','name','LIMIT','10'],
+    hint:    '&#128161; LIMIT recorta el resultado a los primeros N registros',
+    explain: 'LIMIT es esencial para paginaci&#243;n y para evitar traer millones de filas en tablas grandes.',
+    decoys:  ['*','users','WHERE','=','salary','active','GROUP BY'],
+  },
+  {
+    query:   ['SELECT','name',',','COUNT(*)','FROM','orders','GROUP BY','name'],
+    hint:    '&#128161; GROUP BY agrupa filas con el mismo valor para aplicar funciones de agregaci&#243;n',
+    explain: 'GROUP BY es fundamental para estad&#237;sticas: cu&#225;ntas &#243;rdenes por cliente, ventas por mes, etc.',
+    decoys:  ['*','users','WHERE','=','salary','LIMIT','ORDER BY'],
+  },
+  {
+    query:   ['SELECT','name',',','SUM(salary)','FROM','employees','GROUP BY','name','HAVING','SUM(salary)','>','100000'],
+    hint:    '&#128161; HAVING filtra grupos ya agrupados, como WHERE pero para resultados de GROUP BY',
+    explain: 'WHERE filtra filas individuales ANTES de agrupar. HAVING filtra grupos DESPU&#201;S de GROUP BY. Ambos pueden coexistir.',
+    decoys:  ['*','users','WHERE','=','ORDER BY','LIMIT',',','age'],
+  },
+];
+
+const DECOY_POOL = ['*','name','salary','users','employees','WHERE','ORDER BY','LIMIT','=','>','<','AND','OR','active','1','10',',','age','email','status'];
+
+// ── STATE ───────────────────────────────────────────
+let S = {};
+
+// [MEJORA: Persistencia en LocalStorage de configuraciones de usuario]
+const PREFS = {
+  diff: 'normal',
+  speed: 1.0
+};
+
+function loadSettings() {
+  try {
+    const savedDiff = localStorage.getItem('sqltris_diff');
+    const savedSpeed = localStorage.getItem('sqltris_speed');
+    if (savedDiff) {
+      PREFS.diff = savedDiff;
+      document.getElementById('sel-diff').value = savedDiff;
+    }
+    if (savedSpeed) {
+      PREFS.speed = parseFloat(savedSpeed);
+      document.getElementById('sel-speed').value = savedSpeed;
+    }
+  } catch(e) { console.warn("LocalStorage bloqueado o inaccesible"); }
+}
+
+// Escuchadores para persistir y actualizar configuración en vivo
+document.getElementById('sel-diff').addEventListener('change', (e) => {
+  PREFS.diff = e.target.value;
+  try { localStorage.setItem('sqltris_diff', PREFS.diff); } catch(err){}
+});
+document.getElementById('sel-speed').addEventListener('change', (e) => {
+  PREFS.speed = parseFloat(e.target.value);
+  try { localStorage.setItem('sqltris_speed', PREFS.speed); } catch(err){}
+});
+
+function resetState() {
+  S = {
+    running: false,
+    level: 1, score: 0, lives: 3, combo: 1, missStreak: 0,
+    cursor: Math.floor(COLS / 2),
+    tokens: [], collected: [], neededIdx: 0, challenge: null,
+    spawnTimer: 0, spawnInterval: 90,
+    baseSpeed: 1.5, // [MEJORA: Semántica: Ahora esto representa literalmente "Filas por Segundo"]
+    particles: [], shakeTimer: 0, frameCount: 0,
+    keyTimer: { L:0, R:0 },
+  };
+}
+
+// ── CANVAS ──────────────────────────────────────────
+const canvas = document.getElementById('gc');
+const ctx    = canvas.getContext('2d');
+const wrapper = document.getElementById('cw');
+
+function syncCanvas() {
+  canvas.width  = wrapper.clientWidth;
+  canvas.height = wrapper.clientHeight;
+}
+
+function CW() { return canvas.width  / COLS; }
+function CH() { return canvas.height / ROWS; }
+
+// ── CHALLENGE MANAGEMENT ────────────────────────────
+function loadChallenge(idx) {
+  const ch = CHALLENGES[idx % CHALLENGES.length];
+  S.challenge = ch; S.neededIdx = 0;
+  S.collected = []; S.tokens = []; S.spawnTimer = 0;
+  renderTarget(); renderProgress(); setHint(ch.hint);
+  document.getElementById('challenge-num').textContent = (idx+1)+' / '+CHALLENGES.length;
+}
+
+function renderTarget() {
+  const el = document.getElementById('target-tokens');
+  const ch = S.challenge;
+  el.innerHTML = '';
+  ch.query.forEach((tok, i) => {
+    const c = COLORS[tokenType(tok)];
+    const span = document.createElement('span');
+    span.className = 'token-badge ' + (i < S.neededIdx ? 'done' : i === S.neededIdx ? 'next' : 'future');
+    span.textContent = tok;
+    span.style.cssText = 'color:'+c.text+';border-color:'+c.border+';background:'+c.bg+';';
+    el.appendChild(span);
+  });
+}
+
+function renderProgress() {
+  const el = document.getElementById('qprog');
+  if (!S.collected.length) {
+    el.innerHTML = '<span style="color:rgba(0,255,65,0.22)">-- escribe tu query --</span>';
+    return;
+  }
+  el.innerHTML = S.collected.map(tok => {
+    const c = COLORS[tokenType(tok)];
+    return '<span style="color:'+c.text+';margin-right:4px">'+tok+'</span>';
+  }).join('');
+}
+
+function setHint(msg, color) {
+  const h = document.getElementById('hint');
+  h.innerHTML = msg;
+  h.style.color = color || 'var(--amber)';
+}
+
+function updateHUD() {
+  document.getElementById('lvl').textContent   = S.level;
+  document.getElementById('sc').textContent    = S.score;
+  document.getElementById('hp').textContent    = '&#9829;'.repeat(S.lives) + '&#9825;'.repeat(Math.max(0,3-S.lives));
+  document.getElementById('combo').textContent = 'x'+S.combo;
+}
+
+// ── SPAWNING ─────────────────────────────────────────
+function spawnToken() {
+  const ch = S.challenge;
+  const needed = ch.query[S.neededIdx];
+  let text;
+  if (Math.random() < 0.38 || S.tokens.length === 0) {
+    text = needed;
+  } else {
+    const pool = [...(ch.decoys||[]),...DECOY_POOL].filter(d => d !== needed);
+    text = pool[Math.floor(Math.random()*pool.length)];
+  }
+  const busy = new Set(S.tokens.map(t=>t.col));
+  const free = Array.from({length:COLS},(_,i)=>i).filter(c=>!busy.has(c));
+  const col  = free.length ? free[Math.floor(Math.random()*free.length)] : Math.floor(Math.random()*COLS);
+  S.tokens.push({
+    id: Math.random(), text, type: tokenType(text), col, y:-1,
+    isNeeded: text === needed,
+  });
+}
+
+// ── COLLECTION ───────────────────────────────────────
+function collectToken(tok) {
+  const needed = S.challenge.query[S.neededIdx];
+  if (tok.text === needed) {
+    S.collected.push(tok.text); S.neededIdx++;
+    S.missStreak = 0; S.combo = Math.min(8, S.combo+1);
+    const pts = 100 * S.level * S.combo;
+    S.score += pts;
+    spawnParticles(tok.col, true);
+    renderTarget(); renderProgress(); updateHUD();
+    if (S.neededIdx >= S.challenge.query.length) {
+      setTimeout(onLevelComplete, 600);
+    } else {
+      setHint('&#10003; +'+pts+'pts COMBO x'+S.combo+' &middot; Ahora captura: '+S.challenge.query[S.neededIdx], 'var(--green)');
+    }
+  } else {
+    S.lives--; S.missStreak++; S.combo = Math.max(1, S.combo-1);
+    S.shakeTimer = 18;
+    spawnParticles(tok.col, false);
+    renderTarget(); updateHUD();
+    const warn = S.missStreak > 2 ? '  &#9888; '+S.missStreak+' fallos seguidos!' : '';
+    setHint('&#10007; "'+tok.text+'" no es correcto. Necesitas: '+needed+warn, 'var(--red)');
+    if (S.lives <= 0) setTimeout(onGameOver, 500);
+  }
+}
+
+// ── PARTICLES ────────────────────────────────────────
+function spawnParticles(col, correct) {
+  const x = col*CW()+CW()/2, y = canvas.height-CH();
+  const color = correct ? '#00ff41' : '#ff3131';
+  for (let i=0; i<(correct?14:8); i++) {
+    const angle = (Math.PI*2*i/(correct?14:8)) + Math.random()*0.5;
+    const spd   = Math.random()*4+1;
+    S.particles.push({
+      x,y, vx:Math.cos(angle)*spd, vy:Math.sin(angle)*spd-2.5,
+      life:40+Math.random()*20, maxLife:60,
+      color, r:Math.random()*4+2,
+    });
+  }
+}
+
+// ── DRAW ─────────────────────────────────────────────
+function draw() {
+  const cw=CW(), ch=CH();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Grid
+  ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,255,65,0.055)';
+  for (let c=0; c<=COLS; c++) {
+    ctx.beginPath(); ctx.moveTo(c*cw,0); ctx.lineTo(c*cw,canvas.height); ctx.stroke();
+  }
+  for (let r=0; r<=ROWS; r++) {
+    ctx.beginPath(); ctx.moveTo(0,r*ch); ctx.lineTo(canvas.width,r*ch); ctx.stroke();
+  }
+
+  // Cursor column
+  const cx = S.cursor*cw;
+  ctx.fillStyle='rgba(0,255,65,0.07)';
+  ctx.fillRect(cx,0,cw,canvas.height);
+
+  // Catcher box
+  ctx.strokeStyle='rgba(0,255,65,0.75)';
+  ctx.lineWidth=2;
+  ctx.strokeRect(cx+3, canvas.height-ch+3, cw-6, ch-6);
+  ctx.fillStyle='rgba(0,255,65,0.65)';
+  ctx.fillRect(cx+3, canvas.height-ch, cw-6, 3);
+
+  // Ghost: next needed token
+  if (S.challenge && S.neededIdx < S.challenge.query.length) {
+    const needed = S.challenge.query[S.neededIdx];
+    const c = COLORS[tokenType(needed)];
+    const fs = Math.max(8, Math.min(13, cw/Math.max(1,needed.length)*1.45));
+    ctx.font = 'bold '+fs+'px Share Tech Mono,monospace';
+    ctx.fillStyle = c.text+'44';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(needed, cx+cw/2, canvas.height-ch/2);
+  }
+
+  // Falling tokens
+  S.tokens.forEach(tok => {
+    const x=tok.col*cw, y=tok.y*ch;
+    const c=COLORS[tok.type], pad=3;
+    const isNext = tok.isNeeded && S.challenge && tok.text===S.challenge.query[S.neededIdx];
+
+    ctx.fillStyle=c.bg;
+    ctx.fillRect(x+pad, y+pad, cw-pad*2, ch-pad*2);
+
+    if (isNext) { ctx.shadowColor=c.border; ctx.shadowBlur=16; }
+    ctx.strokeStyle = c.border; ctx.lineWidth = isNext ? 2 : 1;
+    ctx.strokeRect(x+pad, y+pad, cw-pad*2, ch-pad*2);
+    ctx.shadowBlur=0;
+
+    const maxCh = Math.max(1, Math.floor((cw-10)/7));
+    const label = tok.text.length > maxCh ? tok.text.slice(0,maxCh-1)+'.' : tok.text;
+    const fs    = Math.max(7, Math.min(12, (cw-10)/Math.max(1,label.length)*1.6));
+    ctx.font='bold '+fs+'px Share Tech Mono,monospace';
+    ctx.fillStyle=c.text; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(label, x+cw/2, y+ch/2);
+  });
+
+  // Particles
+  S.particles.forEach(p => {
+    ctx.globalAlpha = p.life/p.maxLife;
+    ctx.fillStyle   = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r*(p.life/p.maxLife), 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha=1;
+}
+
+// ── GAME LOOP ────────────────────────────────────────
+let rafId=null;
+
+function gameLoop() {
+  if (!S.running) return;
+  S.frameCount++;
+
+  // Key-held cursor movement
+  if (keys.L) {
+    S.keyTimer.L++;
+    if (S.keyTimer.L===1||(S.keyTimer.L>10&&S.keyTimer.L%2===0)) {
+      if(S.cursor>0) S.cursor--;
+    }
+  } else { S.keyTimer.L=0; }
+  if (keys.R) {
+    S.keyTimer.R++;
+    if (S.keyTimer.R===1||(S.keyTimer.R>10&&S.keyTimer.R%2===0)) {
+      if(S.cursor<COLS-1) S.cursor++;
+    }
+  } else { S.keyTimer.R=0; }
+
+  // [MEJORA: Cálculo Dinámico de Multiplicadores]
+  // Diff: Fácil=0.75x, Normal=1.0x, Difícil=1.3x
+  const diffMultiplier = PREFS.diff === 'easy' ? 0.75 : (PREFS.diff === 'hard' ? 1.3 : 1.0);
+  
+  // Adaptativo: Acelera con el combo (+14% máx) y ralentiza con fallos seguidos (-15% máx)
+  const adaptativeMult = Math.max(0.65, 1 + (S.combo - 1) * 0.02 - (S.missStreak * 0.05));
+  
+  // Velocidad activa (Filas por segundo)
+  const activeSpeedRPS = S.baseSpeed * diffMultiplier * PREFS.speed * adaptativeMult;
+
+  // [MEJORA: Spawns controlados proporcionales a la velocidad activa]
+  // Si caen más rápido, se necesita que spawneen un poco más rápido para no dejar el tablero vacío
+  const activeSpawnInterval = Math.max(20, S.spawnInterval / (diffMultiplier * PREFS.speed));
+  
+  // Spawn
+  S.spawnTimer++;
+  if (S.spawnTimer >= activeSpawnInterval) { spawnToken(); S.spawnTimer=0; }
+
+  // [MEJORA: FÍSICA CORREGIDA]
+  // FallDelta se calcula asumiendo un requestAnimationFrame cercano a 60fps
+  // Si activeSpeedRPS = 1 fila/seg, cada frame debe mover 1/60 de fila. 
+  // Esto elimina el comportamiento errático al redimensionar.
+  const fpsFixedDelta = activeSpeedRPS / 60;
+  const fallDelta = fpsFixedDelta * (keys.D ? 6 : 1);
+  
+  const toRemove  = [];
+  S.tokens.forEach(tok => {
+    tok.y += fallDelta;
+    if (S.challenge && S.neededIdx < S.challenge.query.length)
+      tok.isNeeded = (tok.text === S.challenge.query[S.neededIdx]);
+    if (tok.y >= ROWS-1) {
+      if (tok.col===S.cursor) collectToken(tok);
+      toRemove.push(tok.id);
+    }
+  });
+  S.tokens = S.tokens.filter(t=>!toRemove.includes(t.id));
+
+  // Particles
+  S.particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=0.13; p.life--; });
+  S.particles = S.particles.filter(p=>p.life>0);
+
+  // Shake
+  if (S.shakeTimer>0) {
+    canvas.style.transform='translateX('+((Math.random()-0.5)*5)+'px)';
+    if (--S.shakeTimer===0) canvas.style.transform='';
+  }
+
+  draw();
+  rafId=requestAnimationFrame(gameLoop);
+}
+
+// ── EVENTS ───────────────────────────────────────────
+function onLevelComplete() {
+  S.running=false; if(rafId) cancelAnimationFrame(rafId);
+  const bonus = 500*S.level*S.combo;
+  S.score+=bonus; updateHUD();
+  document.getElementById('completed-q').textContent  = S.collected.join(' ');
+  document.getElementById('level-exp').innerHTML      = S.challenge.explain;
+  document.getElementById('level-bonus').textContent  = '&#127942; +'+bonus+' pts BONUS  COMBO x'+S.combo;
+  document.getElementById('ov-level').style.display   = 'flex';
+}
+
+function onGameOver() {
+  S.running=false; if(rafId) cancelAnimationFrame(rafId);
+  document.getElementById('final-msg').textContent = 'Puntuaci&#243;n: '+S.score+' pts  ·  Niveles: '+(S.level-1);
+  document.getElementById('ov-gameover').style.display='flex';
+}
+
+function startGame() {
+  syncCanvas();
+  document.getElementById('ov-start').style.display='none';
+  resetState(); S.level=1;
+  loadChallenge(0); updateHUD();
+  S.running=true; gameLoop();
+}
+
+function nextLevel() {
+  document.getElementById('ov-level').style.display='none';
+  S.level++;
+  // [MEJORA: Curva de dificultad equilibrada y suavizada]
+  // Velocidad base incrementa levemente, no salta agresivamente
+  S.baseSpeed     = 1.5 + (S.level-1) * 0.12; 
+  S.spawnInterval = Math.max(35, 90 - (S.level-1) * 4);
+  
+  loadChallenge(S.level-1); updateHUD();
+  S.running=true; gameLoop();
+}
+
+function restartGame() {
+  document.getElementById('ov-gameover').style.display='none';
+  startGame();
+}
+
+// ── INPUT ────────────────────────────────────────────
+const keys={L:false,R:false,D:false};
+
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowLeft'||e.key==='a')  { keys.L=true; e.preventDefault(); }
+  if(e.key==='ArrowRight'||e.key==='d') { keys.R=true; e.preventDefault(); }
+  if(e.key==='ArrowDown'||e.key==='s'||e.key===' ') { keys.D=true; e.preventDefault(); }
+});
+document.addEventListener('keyup', e=>{
+  if(e.key==='ArrowLeft'||e.key==='a')  keys.L=false;
+  if(e.key==='ArrowRight'||e.key==='d') keys.R=false;
+  if(e.key==='ArrowDown'||e.key==='s'||e.key===' ') keys.D=false;
+});
+
+function bindBtn(id, key) {
+  const btn=document.getElementById(id);
+  ['touchstart','mousedown'].forEach(ev=>btn.addEventListener(ev,e=>{
+    if(ev==='touchstart') e.preventDefault();
+    keys[key]=true; btn.classList.add('pressed');
+  },{passive:false}));
+  ['touchend','mouseup','mouseleave'].forEach(ev=>btn.addEventListener(ev,e=>{
+    if(ev==='touchend') e.preventDefault();
+    keys[key]=false; btn.classList.remove('pressed');
+  },{passive:false}));
+}
+bindBtn('btnL','L'); bindBtn('btnR','R'); bindBtn('btnD','D');
+
+document.getElementById('btn-start').addEventListener('click',   startGame);
+document.getElementById('btn-next').addEventListener('click',    nextLevel);
+document.getElementById('btn-restart').addEventListener('click', restartGame);
+
+// Swipe support on canvas
+let swipeX=null;
+canvas.addEventListener('touchstart', e=>{ swipeX=e.touches[0].clientX; },{passive:true});
+canvas.addEventListener('touchend',   e=>{
+  if(swipeX===null) return;
+  const dx=e.changedTouches[0].clientX-swipeX;
+  if(Math.abs(dx)>22) {
+    if(dx<0&&S.cursor>0) S.cursor--;
+    if(dx>0&&S.cursor<COLS-1) S.cursor++;
+  }
+  swipeX=null;
+});
+
+let rto;
+window.addEventListener('resize',()=>{ clearTimeout(rto); rto=setTimeout(()=>{ syncCanvas(); draw(); },100); });
+
+// Init
+loadSettings(); // [MEJORA: Carga preferencias guardadas al iniciar]
+syncCanvas(); draw();
+</script>
+</body>
+</html>
