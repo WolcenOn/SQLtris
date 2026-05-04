@@ -1,40 +1,547 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>SQL-TRIS · ULTIMATE GitHub Fix</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>SQL-TRIS · GitHub Safe</title>
 <style>
 :root{
-  --green:#00ff41;--cyan:#00f3ff;--amber:#ffb700;--red:#ff3131;--purple:#bc13fe;
-  --teal:#00ffaa;--orange:#ff8c00;--violet:#dd44ff;--yellow:#ffff44;
-  --dim:rgba(0,255,65,.22);--bg:#020c02;--panel:#060f06;
+  --green:#00ff41;--cyan:#00f3ff;--amber:#ffb700;--red:#ff3131;
+  --purple:#bc13fe;--teal:#00ffaa;--orange:#ff8c00;--violet:#dd44ff;
+  --dim:rgba(0,255,65,.25);--bg:#020c02;--panel:#061106;
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0}
 body{
-  background:var(--bg);color:var(--green);font-family:'Share Tech Mono',monospace;
-  min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;
+  min-height:100vh;background:var(--bg);color:var(--green);
+  font-family:Consolas,"Courier New",monospace;display:flex;flex-direction:column;align-items:center;
 }
-body::after{
-  content:'';position:fixed;inset:0;pointer-events:none;z-index:200;
-  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.045) 3px,rgba(0,0,0,.045) 4px);
-}
-body::before{
-  content:'';position:fixed;inset:0;pointer-events:none;z-index:199;
-  background:radial-gradient(ellipse at center,transparent 58%,rgba(0,0,0,.72) 100%);
+body:before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.08) 3px,rgba(0,0,0,.08) 4px);
 }
 .header{
-  width:100%;max-width:900px;padding:7px 16px;display:flex;justify-content:space-between;align-items:center;
-  border-bottom:1px solid var(--dim);
+  width:100%;max-width:950px;padding:10px 14px;display:flex;justify-content:space-between;gap:10px;
+  border-bottom:1px solid var(--dim);align-items:center;
 }
 .logo{
-  font-family:'Orbitron',monospace;font-size:clamp(.9rem,2.8vw,1.5rem);font-weight:900;letter-spacing:5px;
-  text-shadow:0 0 14px var(--green),0 0 30px var(--green);animation:logoFlicker 9s infinite;
+  font-size:clamp(1rem,4vw,1.65rem);font-weight:900;letter-spacing:4px;
+  text-shadow:0 0 12px var(--green);
 }
-.logo-sub{font-size:.45em;color:var(--cyan);letter-spacing:4px;vertical-align:super;margin-left:4px}
-@keyframes logoFlicker{0%,92%,94.5%,96.5%,100%{opacity:1}93%,95.5%{opacity:.6}}
+.logo span{font-size:.5em;color:var(--cyan);vertical-align:super}
+.hud{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.hud-item{text-align:center;min-width:48px}
+.hud-label{display:block;color:var(--dim);font-size:.55rem;letter-spacing:2px}
+.hud-value{display:block;color:var(--cyan);font-size:.95rem;font-weight:bold}
+.settings{
+  width:100%;max-width:950px;padding:7px 12px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
+  background:#030903;border-bottom:1px solid var(--dim);
+}
+label{font-size:.65rem;color:var(--dim);letter-spacing:1px}
+select{
+  margin-left:5px;background:var(--panel);color:var(--green);border:1px solid var(--dim);
+  padding:4px 7px;border-radius:4px;font-family:inherit;
+}
+.main{width:100%;max-width:950px;display:flex;gap:10px;padding:10px;flex:1;min-height:0}
+.game{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}
+.panel{
+  background:var(--panel);border:1px solid var(--dim);border-radius:5px;padding:8px 10px;
+}
+.section{
+  color:var(--dim);font-size:.6rem;letter-spacing:2px;margin-bottom:6px;
+  display:flex;justify-content:space-between;gap:8px;
+}
+.tokens{display:flex;flex-wrap:wrap;gap:5px;min-height:28px}
+.badge{
+  border:1px solid currentColor;border-radius:4px;padding:3px 7px;font-size:.75rem;
+  background:rgba(0,255,65,.04);white-space:nowrap;
+}
+.badge.done{opacity:.28;text-decoration:line-through}
+.badge.future{opacity:.42}
+.badge.next{animation:pulse .6s infinite alternate}
+@keyframes pulse{from{transform:scale(1)}to{transform:scale(1.1);box-shadow:0 0 15px currentColor}}
+.canvas-box{
+  position:relative;flex:1;min-height:360px;border:1px solid rgba(0,255,65,.18);
+  border-radius:5px;overflow:hidden;background:#010801;
+}
+canvas{display:block;width:100%;height:100%}
+.overlay{
+  position:absolute;inset:0;background:rgba(2,12,2,.94);z-index:5;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px;text-align:center;
+}
+.overlay h2{font-size:1.5rem;text-shadow:0 0 20px currentColor}
+.overlay p{font-size:.8rem;line-height:1.55;max-width:330px;color:rgba(0,255,65,.72)}
+button{
+  background:transparent;color:var(--green);border:2px solid var(--green);border-radius:4px;
+  padding:9px 22px;font-family:inherit;font-weight:bold;letter-spacing:2px;cursor:pointer;
+}
+button:hover{background:var(--green);color:#001000;box-shadow:0 0 18px var(--green)}
+.controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.ctrl{padding:13px 4px;border:1px solid var(--dim);font-size:.85rem}
+.ctrl.pressed,.ctrl:active{background:var(--green);color:#000}
+.hint{font-size:.72rem;color:var(--amber);min-height:32px;line-height:1.45}
+.ref{
+  width:210px;flex-shrink:0;background:var(--panel);border:1px solid var(--dim);
+  border-radius:5px;padding:10px;overflow:auto;font-size:.7rem;line-height:1.45;
+}
+.ref h3{color:var(--cyan);font-size:.72rem;letter-spacing:2px;margin-bottom:10px}
+.ref b{color:var(--amber)}
+.ref .muted{color:rgba(0,255,65,.55)}
+.completed{
+  color:var(--cyan);border:1px solid var(--cyan);background:rgba(0,243,255,.06);
+  padding:8px 10px;border-radius:4px;max-width:340px;line-height:1.55;word-break:break-word;
+}
+@media(max-width:700px){
+  .main{flex-direction:column;padding:6px}
+  .ref{width:100%;max-height:150px}
+  .canvas-box{min-height:310px}
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="logo">SQL-TRIS <span>SAFE</span></div>
+  <div class="hud">
+    <div class="hud-item"><span class="hud-label">NIVEL</span><span class="hud-value" id="lvl">1</span></div>
+    <div class="hud-item"><span class="hud-label">SCORE</span><span class="hud-value" id="score">0</span></div>
+    <div class="hud-item"><span class="hud-label">VIDAS</span><span class="hud-value" id="lives">♥♥♥</span></div>
+    <div class="hud-item"><span class="hud-label">COMBO</span><span class="hud-value" id="combo">x1</span></div>
+  </div>
+</header>
+
+<div class="settings">
+  <label>CATEGORÍA
+    <select id="category">
+      <option value="dml">DML - SELECT</option>
+      <option value="ddl">DDL - CREATE / ALTER</option>
+      <option value="proc">TRIGGERS / PROCEDURES</option>
+    </select>
+  </label>
+  <label>DIFICULTAD
+    <select id="difficulty">
+      <option value="easy">Fácil</option>
+      <option value="normal" selected>Normal</option>
+      <option value="hard">Difícil</option>
+    </select>
+  </label>
+  <label>VELOCIDAD
+    <select id="speed">
+      <option value="0.7">Lenta</option>
+      <option value="1" selected>Normal</option>
+      <option value="1.5">Rápida</option>
+      <option value="2">Muy rápida</option>
+    </select>
+  </label>
+</div>
+
+<main class="main">
+  <section class="game">
+    <div class="panel">
+      <div class="section"><span>▶ OBJETIVO SQL</span><span id="challengeInfo"></span></div>
+      <div class="tokens" id="targetTokens"></div>
+    </div>
+
+    <div class="canvas-box" id="canvasBox">
+      <canvas id="gameCanvas"></canvas>
+
+      <div class="overlay" id="startOverlay">
+        <h2 style="color:var(--green)">SQL-TRIS</h2>
+        <p id="categoryDesc">Captura tokens SQL en el orden correcto.</p>
+        <p>Controles: ← → / A D para moverte. ↓ / S / Espacio para bajar rápido.</p>
+        <button id="startBtn" type="button">▶ INICIAR</button>
+      </div>
+
+      <div class="overlay" id="levelOverlay" style="display:none">
+        <h2 style="color:var(--cyan)">✓ QUERY VÁLIDA</h2>
+        <div class="completed" id="completedQuery"></div>
+        <p id="explanation"></p>
+        <div id="bonus" style="color:var(--amber);font-weight:bold"></div>
+        <button id="nextBtn" type="button">SIGUIENTE NIVEL ▶</button>
+      </div>
+
+      <div class="overlay" id="gameOverOverlay" style="display:none">
+        <h2 style="color:var(--red)">GAME OVER</h2>
+        <p id="finalMsg"></p>
+        <button id="restartBtn" type="button">↻ REINICIAR</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="section">▶ QUERY EN CONSTRUCCIÓN</div>
+      <div id="progress"></div>
+    </div>
+
+    <div class="panel hint" id="hint"></div>
+
+    <div class="controls">
+      <button class="ctrl" id="leftBtn" type="button">◀ IZQ</button>
+      <button class="ctrl" id="downBtn" type="button">⬇ BAJAR</button>
+      <button class="ctrl" id="rightBtn" type="button">DER ▶</button>
+    </div>
+  </section>
+
+  <aside class="ref">
+    <h3>▶ REFERENCIA SQL</h3>
+    <p><b>SELECT</b> elige columnas.</p>
+    <p><b>FROM</b> indica la tabla.</p>
+    <p><b>WHERE</b> filtra filas.</p>
+    <p><b>GROUP BY</b> agrupa.</p>
+    <p><b>HAVING</b> filtra grupos.</p>
+    <p><b>ORDER BY</b> ordena.</p>
+    <br>
+    <p class="muted">DDL crea o modifica estructuras: CREATE TABLE, ALTER TABLE, DROP TABLE.</p>
+    <br>
+    <p class="muted">Triggers y procedures automatizan lógica SQL con BEGIN / END.</p>
+  </aside>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  const COLS = 7;
+  const ROWS = 14;
+
+  const $ = (id) => document.getElementById(id);
+
+  const canvas = $("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  const canvasBox = $("canvasBox");
+
+  const COLOR = {
+    kw: "#00f3ff",
+    ddl: "#00ffaa",
+    proc: "#dd44ff",
+    table: "#ffb700",
+    col: "#00ff41",
+    op: "#ff3131",
+    val: "#bc13fe",
+    sep: "#bbbbbb",
+    wild: "#ffffff",
+    dtype: "#ff8c00"
+  };
+
+  const CHALLENGES = {
+    dml: {
+      label: "DML",
+      desc: "Consultas de datos: SELECT, FROM, WHERE, GROUP BY, HAVING.",
+      decoys: ["SELECT","FROM","WHERE","ORDER BY","GROUP BY","HAVING","LIMIT","users","employees","orders","products","name","salary","age","email","status","active","1","10","*","COUNT(*)",",","=",">","<"],
+      levels: [
+        {q:["SELECT","*","FROM","users"], hint:"Captura SELECT, luego *, luego FROM y finalmente users.", exp:"SELECT * FROM users devuelve todas las columnas de la tabla users."},
+        {q:["SELECT","name","FROM","employees"], hint:"Selecciona una columna concreta: name.", exp:"Listar columnas concretas suele ser más eficiente que usar *."},
+        {q:["SELECT","*","FROM","orders","WHERE","status","=","active"], hint:"WHERE filtra filas según una condición.", exp:"La condición status = active deja solo los pedidos activos."},
+        {q:["SELECT","name",",","salary","FROM","employees","WHERE","salary",">","50000"], hint:"La coma separa columnas y > compara valores.", exp:"Esta consulta trae nombre y salario de empleados con salario superior a 50000."},
+        {q:["SELECT","COUNT(*)","FROM","users","WHERE","active","=","1"], hint:"COUNT(*) cuenta filas.", exp:"COUNT(*) cuenta cuántos usuarios cumplen active = 1."}
+      ]
+    },
+    ddl: {
+      label: "DDL",
+      desc: "Estructura de base de datos: CREATE, ALTER, DROP.",
+      decoys: ["CREATE","ALTER","DROP","TABLE","COLUMN","INDEX","users","employees","orders","id","name","email","total","INT","VARCHAR","DECIMAL","DATE","PRIMARY KEY","ADD","(",")",","],
+      levels: [
+        {q:["CREATE","TABLE","users","(","id","INT",",","name","VARCHAR",")"], hint:"CREATE TABLE crea una tabla con columnas y tipos.", exp:"id INT crea una columna entera; name VARCHAR crea una columna de texto."},
+        {q:["ALTER","TABLE","employees","ADD","COLUMN","email","VARCHAR"], hint:"ALTER TABLE modifica una tabla existente.", exp:"ADD COLUMN añade una columna sin borrar la tabla."},
+        {q:["DROP","TABLE","users"], hint:"DROP TABLE elimina una tabla.", exp:"DROP TABLE borra la tabla y sus datos."},
+        {q:["CREATE","TABLE","orders","(","id","INT","PRIMARY KEY",",","total","DECIMAL",")"], hint:"PRIMARY KEY identifica filas únicas.", exp:"Una clave primaria identifica de forma única cada fila."}
+      ]
+    },
+    proc: {
+      label: "TRIGGERS",
+      desc: "Automatización SQL: triggers, procedures, BEGIN y END.",
+      decoys: ["CREATE","TRIGGER","PROCEDURE","BEGIN","END","BEFORE","AFTER","INSERT","UPDATE","DELETE","ON","users","orders","employees","FOR EACH ROW","SELECT","FROM",";","(",")","DELIMITER","//","CALL"],
+      levels: [
+        {q:["CREATE","TRIGGER","log_insert","BEFORE","INSERT","ON","users","FOR EACH ROW","BEGIN","END"], hint:"Un trigger se dispara automáticamente.", exp:"BEFORE INSERT se ejecuta antes de insertar cada fila en users."},
+        {q:["CREATE","TRIGGER","del_audit","AFTER","DELETE","ON","orders","FOR EACH ROW","BEGIN","END"], hint:"AFTER DELETE sirve para auditoría.", exp:"AFTER DELETE se ejecuta después de borrar filas."},
+        {q:["CREATE","PROCEDURE","get_users","(",")","BEGIN","SELECT","*","FROM","users",";","END"], hint:"Un procedure encapsula SQL reutilizable.", exp:"Un procedimiento se puede llamar después con CALL."}
+      ]
+    }
+  };
+
+  const TYPE_KEYWORDS = {
+    kw: new Set(["SELECT","FROM","WHERE","ORDER BY","GROUP BY","HAVING","LIMIT","INSERT","UPDATE","DELETE","ON","AND","OR"]),
+    ddl: new Set(["CREATE","ALTER","DROP","TABLE","COLUMN","INDEX","ADD","PRIMARY KEY"]),
+    proc: new Set(["TRIGGER","PROCEDURE","BEGIN","END","BEFORE","AFTER","FOR EACH ROW","CALL","DELIMITER"]),
+    dtype: new Set(["INT","VARCHAR","DECIMAL","DATE","BOOLEAN"]),
+    op: new Set(["=",">","<",">=","<=","!="]),
+    sep: new Set([",",";","(",")","//"]),
+    wild: new Set(["*","COUNT(*)"]),
+    table: new Set(["users","employees","orders","products"])
+  };
+
+  function tokenType(token) {
+    for (const [type, set] of Object.entries(TYPE_KEYWORDS)) {
+      if (set.has(token)) return type;
+    }
+    if (/^\d+$/.test(token) || /^'.*'$/.test(token)) return "val";
+    return "col";
+  }
+
+  function tokenColor(token) {
+    return COLOR[tokenType(token)] || COLOR.col;
+  }
+
+  const state = {
+    running: false,
+    level: 1,
+    score: 0,
+    lives: 3,
+    combo: 1,
+    cursor: 3,
+    neededIndex: 0,
+    challengeIndex: 0,
+    challenge: null,
+    tokens: [],
+    collected: [],
+    particles: [],
+    spawnTimer: 0,
+    spawnEvery: 85,
+    baseSpeed: 1.35,
+    lastTime: 0,
+    raf: 0
+  };
+
+  const keys = { left:false, right:false, down:false };
+
+  function safeCategoryName() {
+    const selected = $("category").value;
+    return CHALLENGES[selected] ? selected : "dml";
+  }
+
+  function category() {
+    return CHALLENGES[safeCategoryName()] || CHALLENGES.dml;
+  }
+
+  function resizeCanvas() {
+    canvas.width = Math.max(280, canvasBox.clientWidth);
+    canvas.height = Math.max(280, canvasBox.clientHeight);
+  }
+
+  function cellW(){ return canvas.width / COLS; }
+  function cellH(){ return canvas.height / ROWS; }
+
+  function resetState() {
+    state.running = false;
+    state.level = 1;
+    state.score = 0;
+    state.lives = 3;
+    state.combo = 1;
+    state.cursor = Math.floor(COLS / 2);
+    state.neededIndex = 0;
+    state.challengeIndex = 0;
+    state.challenge = null;
+    state.tokens = [];
+    state.collected = [];
+    state.particles = [];
+    state.spawnTimer = 0;
+    state.spawnEvery = 85;
+    state.baseSpeed = 1.35;
+    state.lastTime = 0;
+  }
+
+  function updateCategoryText() {
+    $("categoryDesc").textContent = category().desc;
+  }
+
+  function updateHud() {
+    $("lvl").textContent = String(state.level);
+    $("score").textContent = String(state.score);
+    $("lives").textContent = "♥".repeat(Math.max(0, state.lives)) + "♡".repeat(Math.max(0, 3 - state.lives));
+    $("combo").textContent = "x" + state.combo;
+  }
+
+  function renderTarget() {
+    const target = $("targetTokens");
+    target.innerHTML = "";
+
+    const q = state.challenge && Array.isArray(state.challenge.q) ? state.challenge.q : [];
+    for (let i = 0; i < q.length; i++) {
+      const token = q[i];
+      const span = document.createElement("span");
+      span.className = "badge " + (i < state.neededIndex ? "done" : i === state.neededIndex ? "next" : "future");
+      span.style.color = tokenColor(token);
+      span.textContent = token;
+      target.appendChild(span);
+    }
+  }
+
+  function renderProgress() {
+    const progress = $("progress");
+    const arr = Array.isArray(state.collected) ? state.collected : [];
+
+    if (arr.length === 0) {
+      progress.innerHTML = '<span style="color:rgba(0,255,65,.25)">-- escribe tu query --</span>';
+      return;
+    }
+
+    progress.innerHTML = arr.map(t => `<span style="color:${tokenColor(t)};margin-right:6px">${escapeHtml(t)}</span>`).join("");
+  }
+
+  function escapeHtml(text) {
+    return String(text).replace(/[&<>"']/g, ch => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[ch]));
+  }
+
+  function setHint(text, color) {
+    $("hint").style.color = color || "var(--amber)";
+    $("hint").innerHTML = text || "";
+  }
+
+  function loadChallenge(index) {
+    const levels = Array.isArray(category().levels) ? category().levels : [];
+    if (levels.length === 0) return;
+
+    state.challengeIndex = index % levels.length;
+    state.challenge = levels[state.challengeIndex];
+    state.neededIndex = 0;
+    state.tokens = [];
+    state.collected = [];
+    state.particles = [];
+    state.spawnTimer = 0;
+
+    $("challengeInfo").textContent = category().label + " · " + (state.challengeIndex + 1) + "/" + levels.length;
+    renderTarget();
+    renderProgress();
+    setHint(state.challenge.hint);
+  }
+
+  function nextNeededToken() {
+    const q = state.challenge && Array.isArray(state.challenge.q) ? state.challenge.q : [];
+    return q[state.neededIndex] || "";
+  }
+
+  function spawnToken() {
+    const needed = nextNeededToken();
+    if (!needed) return;
+
+    const decoys = Array.isArray(category().decoys) ? category().decoys : [];
+    let text = needed;
+
+    if (state.tokens.length > 0 && Math.random() > 0.42) {
+      const pool = decoys.filter(t => t !== needed);
+      if (pool.length > 0) text = pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    const occupied = new Set(state.tokens.map(t => t.col));
+    const freeCols = [];
+    for (let i = 0; i < COLS; i++) {
+      if (!occupied.has(i)) freeCols.push(i);
+    }
+
+    const col = freeCols.length ? freeCols[Math.floor(Math.random() * freeCols.length)] : Math.floor(Math.random() * COLS);
+
+    state.tokens.push({
+      id: Date.now() + "_" + Math.random(),
+      text,
+      col,
+      y: -1,
+      type: tokenType(text)
+    });
+  }
+
+  function collectToken(token) {
+    const needed = nextNeededToken();
+    if (!needed) return;
+
+    if (token.text === needed) {
+      state.collected.push(token.text);
+      state.neededIndex++;
+      state.combo = Math.min(8, state.combo + 1);
+
+      const points = 100 * state.level * state.combo;
+      state.score += points;
+
+      particles(token.col, true);
+      updateHud();
+      renderTarget();
+      renderProgress();
+
+      const q = state.challenge && Array.isArray(state.challenge.q) ? state.challenge.q : [];
+      if (state.neededIndex >= q.length) {
+        setTimeout(levelComplete, 450);
+      } else {
+        setHint("✓ +" + points + " pts · Ahora captura: <strong>" + escapeHtml(nextNeededToken()) + "</strong>", "var(--green)");
+      }
+    } else {
+      state.lives--;
+      state.combo = Math.max(1, state.combo - 1);
+      particles(token.col, false);
+      updateHud();
+      setHint("✗ Capturaste <strong>" + escapeHtml(token.text) + "</strong>. Necesitas: <strong>" + escapeHtml(needed) + "</strong>", "var(--red)");
+      if (state.lives <= 0) setTimeout(gameOver, 250);
+    }
+  }
+
+  function particles(col, good) {
+    const x = col * cellW() + cellW() / 2;
+    const y = canvas.height - cellH() / 2;
+    const color = good ? "#00ff41" : "#ff3131";
+
+    for (let i = 0; i < 14; i++) {
+      const a = Math.PI * 2 * i / 14;
+      state.particles.push({
+        x,y,
+        vx:Math.cos(a) * (1 + Math.random() * 3),
+        vy:Math.sin(a) * (1 + Math.random() * 3) - 1.8,
+        life:35,
+        color
+      });
+    }
+  }
+
+  function difficultyMultiplier() {
+    const diff = $("difficulty").value;
+    if (diff === "easy") return 0.75;
+    if (diff === "hard") return 1.35;
+    return 1;
+  }
+
+  function speedMultiplier() {
+    const n = parseFloat($("speed").value);
+    return Number.isFinite(n) ? n : 1;
+  }
+
+  function update(dt) {
+    if (!state.running) return;
+
+    if (keys.left && state.cursor > 0) {
+      state.cursor--;
+      keys.left = false;
+    }
+    if (keys.right && state.cursor < COLS - 1) {
+      state.cursor++;
+      keys.right = false;
+    }
+
+    const mult = difficultyMultiplier() * speedMultiplier();
+    const fallRows = state.baseSpeed * mult * dt * (keys.down ? 6 : 1);
+
+    state.spawnTimer += dt * 60;
+    const spawnEvery = Math.max(25, state.spawnEvery / mult);
+    if (state.spawnTimer >= spawnEvery) {
+      spawnToken();
+      state.spawnTimer = 0;
+    }
+
+    const remove = new Set();
+
+    for (const token of state.tokens) {
+      token.y += fallRows;
+
+      if (token.y >= ROWS - 1) {
+        if (token.col === state.cursor) collectToken(token);
+        remove.add(token.id);
+      }
+    }
+
+    state.tokens = state.tokens.filter(t => !remove.has(t.id));
+
+    for (const p of state.particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.09;
+      p.life -= 1;
+    }
+    stat@keyframes logoFlicker{0%,92%,94.5%,96.5%,100%{opacity:1}93%,95.5%{opacity:.6}}
 .hud{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}
 .hud-item{display:flex;flex-direction:column;align-items:center;min-width:38px}
 .hud-label{color:var(--dim);font-size:.5rem;letter-spacing:3px}
