@@ -1,1235 +1,1306 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>QR‑Vault · Prueba de Concepto</title>
-  <style>
-    :root {
-      --bg: #0f172a;
-      --panel: #111827;
-      --text: #e5e7eb;
-      --muted: #9ca3af;
-      --line: #374151;
-      --accent: #38bdf8;
-      --green: #22c55e;
-      --warn: #f59e0b;
-      --danger: #ef4444;
-      --radius: 18px;
-      --shadow: 0 20px 60px rgba(0,0,0,.35);
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>SQL-TRIS · ULTIMATE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+/* ── CSS TOKENS ─────────────────────────────────────── */
+:root {
+  --green:  #00ff41;
+  --cyan:   #00f3ff;
+  --amber:  #ffb700;
+  --red:    #ff3131;
+  --purple: #bc13fe;
+  --teal:   #00ffaa;   /* [NUEVO] DDL keywords */
+  --orange: #ff8c00;   /* [NUEVO] Datatypes */
+  --violet: #dd44ff;   /* [NUEVO] Proc/Trigger keywords */
+  --yellow: #ffff44;   /* [NUEVO] DELIMITER // */
+  --dim:    rgba(0,255,65,0.22);
+  --bg:     #020c02;
+  --panel:  #060f06;
+}
+*, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
 
-    * { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--green);
+  font-family: 'Share Tech Mono', monospace;
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center;
+  overflow-x: hidden;
+}
+/* CRT scanlines */
+body::after {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:200;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px,
+    rgba(0,0,0,0.045) 3px, rgba(0,0,0,0.045) 4px);
+}
+/* Vignette */
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:199;
+  background: radial-gradient(ellipse at center, transparent 58%, rgba(0,0,0,0.72) 100%);
+}
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: var(--sans);
-      color: var(--text);
-      background:
-        radial-gradient(circle at top left, rgba(56,189,248,.20), transparent 34rem),
-        radial-gradient(circle at bottom right, rgba(34,197,94,.12), transparent 30rem),
-        var(--bg);
-    }
+/* ── HEADER ─────────────────────────────────────────── */
+.header {
+  width:100%; max-width:900px;
+  padding: 7px 16px;
+  display:flex; justify-content:space-between; align-items:center;
+  border-bottom: 1px solid var(--dim);
+}
+.logo {
+  font-family:'Orbitron', monospace;
+  font-size: clamp(0.9rem,2.8vw,1.5rem);
+  font-weight:900; letter-spacing:5px;
+  text-shadow: 0 0 14px var(--green), 0 0 30px var(--green);
+  animation: logoFlicker 9s infinite;
+}
+.logo-sub {
+  font-size: 0.45em; color:var(--cyan); letter-spacing:4px;
+  vertical-align:super; margin-left:4px;
+}
+@keyframes logoFlicker {
+  0%,92%,94.5%,96.5%,100%{ opacity:1; }
+  93%,95.5%{ opacity:0.6; }
+}
+.hud { display:flex; gap:12px; flex-wrap:wrap; justify-content:flex-end; }
+.hud-item { display:flex; flex-direction:column; align-items:center; min-width:38px; }
+.hud-label { color:var(--dim); font-size:0.5rem; letter-spacing:3px; }
+.hud-value { color:var(--cyan); font-size:0.9rem; font-weight:bold; transition:color 0.3s; }
 
-    header, main {
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 18px;
-    }
+/* ── SETTINGS ROW — [MEJORA: Selector de categoría + controles] ── */
+.settings-row {
+  width:100%; max-width:900px;
+  display:flex; gap:10px; justify-content:center; align-items:center;
+  padding: 5px 16px; background: #030803;
+  border-bottom: 1px solid var(--dim);
+  flex-wrap:wrap;
+}
+.settings-label {
+  color:var(--dim); font-size:0.52rem; letter-spacing:2px; margin-right:4px;
+  white-space:nowrap;
+}
+.settings-row select {
+  background: var(--panel); color: var(--green);
+  border: 1px solid var(--dim); padding: 3px 7px;
+  font-family: 'Share Tech Mono', monospace; font-size:0.7rem;
+  border-radius: 3px; cursor: pointer; transition: all 0.2s;
+  max-width:170px;
+}
+.settings-row select:focus, .settings-row select:hover {
+  outline:none; border-color:var(--cyan); box-shadow:0 0 7px rgba(0,243,255,0.2);
+}
+/* [NUEVO] Category badge highlight when changed */
+#sel-cat { border-color: rgba(0,255,170,0.4); }
+#sel-cat:hover, #sel-cat:focus { border-color:var(--teal); box-shadow:0 0 7px rgba(0,255,170,0.25); }
 
-    .hero, .card {
-      background: rgba(17,24,39,.86);
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-    }
+/* ── MAIN LAYOUT ─────────────────────────────────────── */
+.main {
+  display:flex; gap:10px; padding:8px 12px;
+  max-width:900px; width:100%; flex:1;
+}
+.game-panel { flex:1; display:flex; flex-direction:column; gap:6px; min-width:0; }
 
-    .hero { padding: 22px; }
-    .card { padding: 18px; }
+/* ── TARGET / OBJECTIVE ───────────────────────────────── */
+.target-display {
+  background:var(--panel); border:1px solid var(--dim);
+  padding:7px 12px; border-radius:4px; flex-shrink:0;
+}
+.section-label {
+  color:var(--dim); font-size:0.54rem; letter-spacing:3px; margin-bottom:5px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.challenge-num-badge {
+  font-size:0.56rem; letter-spacing:1px;
+  padding:1px 6px; border-radius:2px;
+  border:1px solid var(--dim);
+}
+.target-tokens { display:flex; flex-wrap:wrap; gap:4px; min-height:26px; }
+.token-badge {
+  padding:2px 6px; border-radius:3px;
+  font-size:0.68rem; font-weight:bold;
+  border:1px solid; font-family:'Share Tech Mono',monospace;
+  transition:all 0.22s; white-space:nowrap;
+}
+.free-block {
+  display:inline-block; margin:2px 5px 2px 0; padding:2px 6px;
+  border:1px solid rgba(0,243,255,0.35); border-radius:3px;
+  background:rgba(0,243,255,0.06); color:var(--cyan);
+}
+.free-current {
+  display:inline-block; margin:2px 5px 2px 0; padding:2px 6px;
+  border:1px solid rgba(255,183,0,0.45); border-radius:3px;
+  background:rgba(255,183,0,0.05); color:var(--amber);
+}
 
-    h1 {
-      margin: 0 0 10px;
-      font-size: clamp(2rem, 5vw, 4rem);
-      line-height: .95;
-      letter-spacing: -.06em;
-    }
+.token-badge.done   { opacity:0.25; text-decoration:line-through; filter:grayscale(1); }
+.token-badge.future { opacity:0.4; }
+.token-badge.next   { animation: nextPulse 0.65s infinite alternate; }
+@keyframes nextPulse {
+  from { transform:scale(1);    box-shadow:0 0 5px currentColor; }
+  to   { transform:scale(1.13); box-shadow:0 0 18px currentColor, 0 0 34px currentColor; }
+}
 
-    h2 {
-      margin: 0 0 12px;
-      font-size: 1.05rem;
-      letter-spacing: -.02em;
-    }
+/* ── CANVAS ──────────────────────────────────────────── */
+.canvas-wrapper {
+  position:relative; flex:1; min-height:0;
+  border:1px solid rgba(0,255,65,0.16);
+  overflow:hidden; border-radius:4px; min-height:300px;
+}
+canvas#gc { display:block; width:100%; height:100%; }
 
-    h3 {
-      margin: 0 0 10px;
-      font-size: .98rem;
-    }
+/* ── QUERY IN PROGRESS ───────────────────────────────── */
+.query-progress {
+  background:var(--panel); border:1px solid var(--dim);
+  padding:5px 12px; border-radius:4px;
+  min-height:30px; flex-shrink:0; line-height:1.7;
+}
 
-    .subtitle, .hint {
-      color: var(--muted);
-      line-height: 1.5;
-    }
+/* ── HINT BAR ────────────────────────────────────────── */
+.hint-bar {
+  padding:4px 12px; border-radius:4px; border:1px solid var(--dim);
+  font-size:0.65rem; color:var(--amber); background:var(--panel);
+  flex-shrink:0; min-height:24px; transition:color 0.3s;
+}
 
-    .subtitle { margin: 0; max-width: 920px; }
-    .hint { margin: 8px 0 0; font-size: .84rem; }
+/* ── TOUCH CONTROLS ──────────────────────────────────── */
+.controls-row {
+  display:grid; grid-template-columns:1fr 1fr 1fr;
+  gap:6px; flex-shrink:0;
+}
+.ctrl-btn {
+  padding:12px 4px; background:#071007; color:var(--green);
+  border:1px solid var(--dim); font-family:'Share Tech Mono',monospace;
+  font-size:0.82rem; cursor:pointer; border-radius:4px;
+  transition:all 0.1s; user-select:none;
+  -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+}
+.ctrl-btn:active, .ctrl-btn.pressed {
+  background:var(--green); color:#000;
+  box-shadow:0 0 16px var(--green); border-color:var(--green);
+}
 
-    main {
-      padding-top: 0;
-      padding-bottom: 46px;
-    }
+/* ── SQL REFERENCE PANEL ─────────────────────────────── */
+.ref-panel {
+  width:180px; flex-shrink:0;
+  background:var(--panel); border:1px solid var(--dim);
+  padding:9px; border-radius:4px;
+  overflow-y:auto; font-size:0.64rem; max-height:660px;
+}
+.ref-title {
+  font-family:'Orbitron',monospace; font-size:0.51rem;
+  letter-spacing:3px; color:var(--cyan);
+  margin-bottom:8px; padding-bottom:5px;
+  border-bottom:1px solid var(--dim);
+}
+/* [NUEVO] Reference panel tabs for different categories */
+.ref-tab {
+  display:none; /* shown by JS based on active category */
+}
+.ref-tab.active { display:block; }
+.ref-group { margin-bottom:10px; }
+.ref-group-label { color:var(--dim); font-size:0.51rem; letter-spacing:2px; margin-bottom:4px; }
+.ref-entry { margin-bottom:6px; }
+.ref-kw   { font-weight:bold; }
+.ref-desc { color:rgba(0,255,65,0.5); font-size:0.58rem; margin-top:1px; line-height:1.32; }
+.ref-example { color:var(--amber); font-size:0.56rem; margin-top:2px; }
+.ref-syntax {
+  color:rgba(0,243,255,0.6); font-size:0.55rem; line-height:1.7;
+  margin-top:3px; border-left:2px solid var(--dim); padding-left:5px;
+}
 
-    .app-tabs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin: 0 0 14px;
-    }
+/* ── OVERLAYS ────────────────────────────────────────── */
+.overlay {
+  position:absolute; inset:0; background:rgba(2,12,2,0.93);
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:11px; z-index:10; padding:18px;
+  overflow-y:auto;
+}
+.overlay h2 {
+  font-family:'Orbitron',monospace;
+  font-size:clamp(0.9rem,3.5vw,1.4rem);
+  text-shadow:0 0 20px currentColor;
+}
+.overlay p {
+  font-size:0.7rem; text-align:center; max-width:280px;
+  line-height:1.65; color:rgba(0,255,65,0.7);
+}
+.cat-pill {
+  padding:4px 14px; border-radius:12px; font-size:0.7rem;
+  border:1px solid; font-family:'Share Tech Mono',monospace;
+  letter-spacing:2px; font-weight:bold;
+}
+.overlay-btn {
+  padding:8px 24px; background:transparent;
+  color:var(--green); border:2px solid var(--green);
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.88rem; letter-spacing:3px;
+  cursor:pointer; border-radius:3px; transition:all 0.2s; margin-top:2px;
+}
+.overlay-btn:hover { background:var(--green); color:#000; box-shadow:0 0 22px var(--green); }
+.completed-query {
+  font-family:'Share Tech Mono',monospace; font-size:0.72rem; color:var(--cyan);
+  background:rgba(0,243,255,0.07); border:1px solid var(--cyan);
+  padding:6px 12px; border-radius:3px; text-align:center;
+  max-width:280px; word-break:break-all; line-height:1.7;
+}
+.level-bonus { color:var(--amber); font-size:0.75rem; font-weight:bold; text-align:center; }
+.explain-box {
+  font-size:0.67rem; text-align:center; max-width:280px;
+  line-height:1.6; color:rgba(0,243,255,0.65);
+  border:1px solid rgba(0,243,255,0.2);
+  padding:6px 10px; border-radius:3px;
+  background:rgba(0,243,255,0.04);
+}
 
-    .app-tab, .sub-tab {
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      color: var(--text);
-      border-radius: 999px;
-      padding: 10px 14px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .app-tab.active, .sub-tab.active {
-      background: var(--accent);
-      color: #06111f;
-      border-color: transparent;
-    }
-
-    .app-panel { display: none; }
-    .app-panel.active { display: block; }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 18px;
-    }
-
-    .stack { display: grid; gap: 14px; align-content: start; }
-
-    label {
-      display: grid;
-      gap: 6px;
-      margin-bottom: 10px;
-      color: var(--muted);
-      font-size: .86rem;
-    }
-
-    input, select, button {
-      font: inherit;
-    }
-
-    input, select {
-      width: 100%;
-      background: rgba(255,255,255,.05);
-      border: 1px solid var(--line);
-      color: var(--text);
-      border-radius: 12px;
-      padding: 11px 12px;
-      outline: none;
-    }
-
-    select option { background: #111827; color: var(--text); }
-
-    input:focus, select:focus {
-      border-color: rgba(56,189,248,.85);
-      box-shadow: 0 0 0 3px rgba(56,189,248,.13);
-    }
-
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-
-    .checks {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin: 8px 0 12px;
-    }
-
-    .check {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      padding: 10px;
-      border-radius: 12px;
-      color: var(--text);
-      font-size: .85rem;
-    }
-
-    .check input { width: auto; margin: 0; }
-
-    .btn-row { display: flex; flex-wrap: wrap; gap: 10px; }
-
-    button {
-      border: none;
-      border-radius: 13px;
-      padding: 11px 14px;
-      background: var(--accent);
-      color: #06111f;
-      font-weight: 800;
-      cursor: pointer;
-      transition: transform .12s ease, opacity .12s ease;
-    }
-
-    button:hover { transform: translateY(-1px); }
-    button:active { transform: translateY(0); opacity: .9; }
-    button.green { background: var(--green); }
-    button.warn { background: var(--warn); }
-    button.danger-btn { background: var(--danger); color: white; }
-    button.secondary { background: #e5e7eb; }
-    button.ghost {
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--line);
-    }
-
-    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-    .badge {
-      font-size: .76rem;
-      padding: 7px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.05);
-      color: var(--text);
-    }
-    .badge.green { border-color: rgba(34,197,94,.35); color: #bbf7d0; }
-    .badge.blue { border-color: rgba(56,189,248,.35); color: #bae6fd; }
-    .badge.warn { border-color: rgba(245,158,11,.35); color: #fde68a; }
-    .badge.red { border-color: rgba(239,68,68,.35); color: #fecaca; }
-
-    .board-wrap {
-      overflow: auto;
-      max-height: 76vh;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.03);
-      padding: 12px;
-    }
-
-    .qr-grid {
-      display: grid;
-      gap: 10px;
-      min-width: 620px;
-    }
-
-    .qr-card {
-      background: #fff;
-      color: #111827;
-      border-radius: 12px;
-      padding: 8px;
-      display: grid;
-      gap: 5px;
-      text-align: center;
-      cursor: pointer;
-      border: 3px solid transparent;
-      user-select: none;
-    }
-
-    .qr-card.selected {
-      border-color: var(--green);
-      box-shadow: 0 0 0 3px rgba(34,197,94,.25);
-    }
-
-    .qr-card img {
-      width: 100%;
-      height: auto;
-      display: block;
-      image-rendering: pixelated;
-      background: #fff;
-      border-radius: 6px;
-    }
-
-    .qr-label {
-      font-family: var(--mono);
-      font-size: .76rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 4px;
-    }
-
-    .symbol { font-size: .95rem; }
-
-    .selected-list { display: flex; flex-wrap: wrap; gap: 8px; min-height: 34px; }
-    .token {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 7px 10px;
-      border-radius: 999px;
-      background: rgba(56,189,248,.12);
-      border: 1px solid rgba(56,189,248,.25);
-      color: #bae6fd;
-      font-family: var(--mono);
-      font-size: .82rem;
-    }
-
-    .token button {
-      width: 22px;
-      height: 22px;
-      display: inline-grid;
-      place-items: center;
-      padding: 0;
-      border-radius: 50%;
-      background: rgba(239,68,68,.92);
-      color: #fff;
-      font-size: .78rem;
-      line-height: 1;
-    }
-
-    .password-box, .secret-box {
-      background: rgba(34,197,94,.08);
-      border: 1px solid rgba(34,197,94,.25);
-      border-radius: 16px;
-      padding: 14px;
-      display: grid;
-      gap: 8px;
-    }
-
-    .password, .mono-box {
-      font-family: var(--mono);
-      font-size: clamp(.9rem, 3vw, 1.18rem);
-      word-break: break-all;
-      background: rgba(0,0,0,.25);
-      padding: 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.08);
-    }
-
-    .notice, .danger {
-      border-radius: 12px;
-      padding: 10px 12px;
-      font-size: .86rem;
-      line-height: 1.45;
-      margin-bottom: 10px;
-    }
-    .notice { color: #fde68a; background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25); }
-    .danger { color: #fecaca; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); }
-
-    video {
-      width: 100%;
-      border-radius: 16px;
-      background: #000;
-      border: 1px solid rgba(255,255,255,.12);
-      min-height: 260px;
-      object-fit: cover;
-      cursor: crosshair;
-    }
-
-    .scanner-frame {
-      position: relative;
-      border-radius: 18px;
-      overflow: hidden;
-    }
-
-    .scan-reticle {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: min(58vw, 260px);
-      height: min(58vw, 260px);
-      transform: translate(-50%, -50%);
-      border: 3px solid rgba(56,189,248,.85);
-      border-radius: 22px;
-      pointer-events: none;
-      box-shadow: 0 0 0 999px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.22);
-      transition: border-color .18s ease, box-shadow .18s ease;
-    }
-
-    .scan-reticle.success {
-      border-color: var(--green);
-      box-shadow: 0 0 0 999px rgba(34,197,94,.16), inset 0 0 0 1px rgba(255,255,255,.35), 0 0 28px rgba(34,197,94,.7);
-    }
-
-    .scan-reticle.error {
-      border-color: var(--danger);
-      box-shadow: 0 0 0 999px rgba(239,68,68,.16), inset 0 0 0 1px rgba(255,255,255,.35), 0 0 28px rgba(239,68,68,.7);
-    }
-
-    .scan-tip {
-      position: absolute;
-      left: 12px;
-      right: 12px;
-      bottom: 12px;
-      padding: 9px 11px;
-      border-radius: 999px;
-      background: rgba(0,0,0,.62);
-      border: 1px solid rgba(255,255,255,.16);
-      color: white;
-      font-size: .82rem;
-      text-align: center;
-      pointer-events: none;
-    }
-
-    .scan-status {
-      margin-top: 10px;
-      min-height: 42px;
-      display: grid;
-      align-items: center;
-    }
-
-    .scan-log { max-height: 180px; overflow: auto; display: grid; gap: 6px; padding-right: 3px; }
-    .log-item {
-      font-family: var(--mono);
-      font-size: .76rem;
-      color: #d1d5db;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: 10px;
-      padding: 8px;
-      word-break: break-all;
-    }
-
-    .print-area { display: none; }
-
-    @media (max-width: 980px) {
-      .layout { grid-template-columns: 1fr; }
-      .board-wrap { max-height: none; }
-    }
-
-    @media (max-width: 560px) {
-      header, main { padding-left: 12px; padding-right: 12px; }
-      .hero, .card { padding: 14px; border-radius: 16px; }
-      .grid-2, .grid-3, .checks { grid-template-columns: 1fr; }
-      .btn-row button, .app-tab { flex: 1 1 100%; }
-      .qr-grid { min-width: 430px; gap: 7px; }
-      .qr-card { padding: 5px; border-radius: 9px; }
-      .qr-label { font-size: .62rem; }
-    }
-
-    @media print {
-      body { background: white; color: black; }
-      header, main { display: none; }
-      .print-area {
-        display: block;
-        padding: 8mm;
-        color: black;
-        font-family: Arial, sans-serif;
-      }
-      .print-title { margin: 0 0 2mm; font-size: 18pt; }
-      .print-note { margin: 0 0 5mm; font-size: 9pt; }
-      .print-grid { display: grid; gap: 3mm; }
-      .print-card {
-        border: 1px solid #111;
-        border-radius: 2mm;
-        padding: 2mm;
-        text-align: center;
-        break-inside: avoid;
-      }
-      .print-card img {
-        width: 100%;
-        height: auto;
-        display: block;
-      }
-      .print-label {
-        margin-top: 1mm;
-        display: flex;
-        justify-content: space-between;
-        font-size: 8pt;
-        font-family: monospace;
-      }
-    }
-  </style>
+/* ── RESPONSIVE ──────────────────────────────────────── */
+@media(max-width:600px) {
+  .main { flex-direction:column; padding:5px; gap:5px; }
+  .ref-panel {
+    width:100%; max-height:115px;
+    display:flex; flex-wrap:nowrap; gap:0; padding:5px 8px;
+    overflow-x:auto; overflow-y:hidden; flex-direction:row;
+  }
+  .ref-tab.active { display:flex; gap:12px; }
+  .ref-group { flex-shrink:0; margin-bottom:0; }
+  .ref-title  { display:none; }
+  .canvas-wrapper { min-height:270px; }
+  .settings-row { gap:6px; justify-content:space-around; }
+  .hud { gap:8px; }
+}
+</style>
 </head>
 <body>
-  <header>
-    <section class="hero">
-      <h1>QR‑Vault PoC</h1>
-      <p class="subtitle">
-        Demo funcional en una sola página: genera QRs, imprime la libreta, escanea códigos con la cámara, configura reglas de contraseña y prueba la generación/almacenaje de un secreto local del usuario.
-      </p>
-      <div class="badge-row">
-        <span class="badge green">Generar</span>
-        <span class="badge blue">Escanear</span>
-        <span class="badge warn">Hash local demo</span>
-        <span class="badge red">No producción</span>
+
+<header class="header">
+  <div class="logo">SQL-TRIS<span class="logo-sub">ULTIMATE</span></div>
+  <div class="hud">
+    <div class="hud-item"><span class="hud-label">NIVEL</span><span class="hud-value" id="lvl">1</span></div>
+    <div class="hud-item"><span class="hud-label">SCORE</span><span class="hud-value" id="sc">0</span></div>
+    <div class="hud-item"><span class="hud-label">VIDAS</span><span class="hud-value" id="hp">&#9829;&#9829;&#9829;</span></div>
+    <div class="hud-item"><span class="hud-label">COMBO</span><span class="hud-value" id="combo" style="color:var(--amber)">x1</span></div>
+  </div>
+</header>
+
+<div class="settings-row">
+  <label>
+    <span class="settings-label">MODO</span>
+    <select id="sel-mode">
+      <option value="guided" selected>Guiado</option>
+      <option value="free">Libre</option>
+    </select>
+  </label>
+  <label>
+    <span class="settings-label">CATEGOR&Iacute;A</span>
+    <select id="sel-cat">
+      <option value="dml">&#128269; DML &mdash; SELECT / INSERT</option>
+      <option value="ddl">&#128295; DDL &mdash; CREATE / ALTER / DROP</option>
+      <option value="proc">&#9889; TRIGGERS &amp; PROCEDURES</option>
+    </select>
+  </label>
+  <label>
+    <span class="settings-label">DIFICULTAD</span>
+    <select id="sel-diff">
+      <option value="easy">F&aacute;cil</option>
+      <option value="normal" selected>Normal</option>
+      <option value="hard">Dif&iacute;cil</option>
+      <option value="expert">Experto</option>
+      <option value="insane">SQL Infernal</option>
+    </select>
+  </label>
+  <label>
+    <span class="settings-label">VELOCIDAD</span>
+    <select id="sel-speed">
+      <option value="0.6">Lenta</option>
+      <option value="1.0" selected>Normal</option>
+      <option value="1.5">R&aacute;pida</option>
+      <option value="2.2">Muy R&aacute;pida</option>
+    </select>
+  </label>
+</div>
+
+<div class="main">
+  <div class="game-panel">
+
+    <div class="target-display">
+      <div class="section-label">
+        <span>&#9654; OBJETIVO SQL</span>
+        <span class="challenge-num-badge" id="challenge-num"></span>
       </div>
-    </section>
-  </header>
+      <div class="target-tokens" id="target-tokens"></div>
+    </div>
 
-  <main>
-    <nav class="app-tabs" aria-label="Secciones principales">
-      <button class="app-tab active" data-panel="panelGenerate">1. Generar libreta</button>
-      <button class="app-tab" data-panel="panelScan">2. Lector QR</button>
-      <button class="app-tab" data-panel="panelConfig">3. Configuración y hash</button>
-      <button class="app-tab" data-panel="panelResult">4. Resultado</button>
-    </nav>
+    <div class="canvas-wrapper" id="cw">
+      <canvas id="gc"></canvas>
 
-    <section id="panelGenerate" class="app-panel active">
-      <div class="layout">
-        <aside class="stack">
-          <section class="card">
-            <h2>Generador de libreta</h2>
-            <div class="grid-2">
-              <label>
-                Tamaño
-                <select id="gridSize">
-                  <option value="4">4 × 4 demo</option>
-                  <option value="6" selected>6 × 6</option>
-                  <option value="8">8 × 8</option>
-                  <option value="10">10 × 10</option>
-                </select>
-              </label>
-              <label>
-                Tamaño QR
-                <select id="qrSize">
-                  <option value="100">Pequeño</option>
-                  <option value="140" selected>Medio</option>
-                  <option value="180">Grande</option>
-                </select>
-              </label>
-            </div>
-            <label>
-              Entropía por QR
-              <select id="entropyBytes">
-                <option value="16" selected>128 bits</option>
-                <option value="24">192 bits</option>
-                <option value="32">256 bits</option>
-              </select>
-            </label>
-            <label>
-              Símbolos visuales
-              <select id="symbolSet">
-                <option value="geometric" selected>Geométricos</option>
-                <option value="cards">Cartas</option>
-                <option value="emoji">Emoji simple</option>
-                <option value="none">Sin símbolos</option>
-              </select>
-            </label>
-            <div class="btn-row">
-              <button id="generateBook" class="green">Generar QRs</button>
-              <button id="printBook" class="secondary">Imprimir</button>
-              <button id="clearSelection" class="ghost">Limpiar selección</button>
-            </div>
-            <p class="hint">Los QRs contienen fragmentos aleatorios, no contraseñas finales.</p>
-          </section>
-
-          <section class="card">
-            <h2>Estado de la libreta</h2>
-            <div class="mono-box" id="bookInfo">—</div>
-            <p class="hint">Al cambiar la libreta, las combinaciones anteriores dejan de coincidir.</p>
-          </section>
-        </aside>
-
-        <section class="card">
-          <h2>Libreta QR</h2>
-          <div class="board-wrap">
-            <div id="qrGrid" class="qr-grid"></div>
-          </div>
-        </section>
+      <div class="overlay" id="ov-start">
+        <h2 style="color:var(--green)">SQL-TRIS</h2>
+        <div class="cat-pill" id="cat-pill-start">DML</div>
+        <p id="cat-desc-start" style="color:var(--amber);font-size:0.65rem;margin-top:-4px"></p>
+        <p>Captura tokens en el <strong style="color:var(--cyan)">orden correcto</strong>.<br><br>
+          <span style="color:var(--dim)">&#8592; &#8594; / A D</span> &mdash; Mover cursor<br>
+          <span style="color:var(--dim)">&#8595; / S / ESPACIO</span> &mdash; Ca&iacute;da r&aacute;pida<br>
+          Los tokens <span style="color:var(--cyan);font-weight:bold">brillantes</span> son los que necesitas.</p>
+        <button class="overlay-btn" id="btn-start">&#9654; INICIAR</button>
       </div>
-    </section>
 
-    <section id="panelScan" class="app-panel">
-      <div class="layout">
-        <aside class="stack">
-          <section class="card">
-            <h2>Lector QR</h2>
-            <div class="scanner-frame" id="scannerFrame">
-              <video id="video" playsinline muted></video>
-              <div id="scanReticle" class="scan-reticle"></div>
-              <div class="scan-tip">Centra un QR y toca la imagen o pulsa “Escanear ahora”</div>
-            </div>
-            <div id="scanStatus" class="scan-status">
-              <div class="notice">Cámara cerrada. Abre la cámara y escanea de forma manual.</div>
-            </div>
-            <div class="btn-row" style="margin-top:10px">
-              <button id="startScan">Abrir cámara</button>
-              <button id="scanNow" class="green">Escanear ahora</button>
-              <button id="stopScan" class="ghost">Parar</button>
-            </div>
-            <p class="hint">El escaneo ya no es continuo: solo lee cuando pulsas. Esto evita acumulaciones por pasar la cámara sobre varios códigos.</p>
-          </section>
-
-          <section class="card">
-            <h2>Registro de lectura</h2>
-            <div id="scanLog" class="scan-log"></div>
-          </section>
-        </aside>
-
-        <section class="card">
-          <h2>QRs seleccionados / escaneados</h2>
-          <div id="selectedList" class="selected-list"></div>
-          <p class="hint">El orden de selección o escaneo afecta a la contraseña final.</p>
-          <div class="btn-row" style="margin-top:14px">
-            <button id="goConfigFromScan">Configurar servicio</button>
-            <button id="clearSelection2" class="ghost">Limpiar selección</button>
-          </div>
-        </section>
+      <div class="overlay" id="ov-level" style="display:none">
+        <h2 style="color:var(--cyan)">&#10003; QUERY V&Aacute;LIDA</h2>
+        <div class="completed-query" id="completed-q"></div>
+        <div class="explain-box" id="level-exp"></div>
+        <div class="level-bonus" id="level-bonus"></div>
+        <button class="overlay-btn" id="btn-next">SIGUIENTE NIVEL &#9654;</button>
       </div>
-    </section>
 
-    <section id="panelConfig" class="app-panel">
-      <div class="layout">
-        <aside class="stack">
-          <section class="card">
-            <h2>Servicio</h2>
-            <label>
-              Servicio
-              <input id="serviceName" value="correo-prueba" placeholder="Ej. gmail, banco, demo" />
-            </label>
-            <label>
-              Usuario
-              <input id="userName" value="usuario.demo@example.com" placeholder="correo o usuario" />
-            </label>
-            <div class="grid-2">
-              <label>
-                Longitud
-                <input id="passwordLength" type="number" min="8" max="64" value="20" />
-              </label>
-              <label>
-                Versión
-                <input id="version" type="number" min="1" max="99" value="1" />
-              </label>
-            </div>
-            <div class="checks">
-              <label class="check"><input type="checkbox" id="useLower" checked /> minúsculas</label>
-              <label class="check"><input type="checkbox" id="useUpper" checked /> mayúsculas</label>
-              <label class="check"><input type="checkbox" id="useDigits" checked /> números</label>
-              <label class="check"><input type="checkbox" id="useSymbols" checked /> símbolos</label>
-            </div>
-            <label>
-              Símbolos permitidos
-              <input id="symbols" value="!@#$%_-+=?." />
-            </label>
-            <div class="btn-row">
-              <button id="derivePassword">Generar contraseña</button>
-              <button id="goResultFromConfig" class="ghost">Ver resultado</button>
-            </div>
-          </section>
-        </aside>
-
-        <section class="stack">
-          <section class="card">
-            <h2>Hash / secreto local del usuario</h2>
-            <div id="secretStatus" class="notice">Comprobando secreto local…</div>
-            <label>
-              Secuencia manual del usuario
-              <input id="userSequence" value="1234-5678" placeholder="Ej. números, frase corta o patrón manual" />
-            </label>
-            <label>
-              Secuencia aleatoria generada por la app
-              <input id="randomSequence" readonly placeholder="Pulsa generar" />
-            </label>
-            <div class="btn-row">
-              <button id="generateRandomSequence" class="green">Generar secuencia aleatoria</button>
-              <button id="createLocalSecret">Crear y guardar hash</button>
-              <button id="testLocalSecret" class="secondary">Probar hash</button>
-              <button id="deleteLocalSecret" class="danger-btn">Borrar hash</button>
-            </div>
-            <p class="hint">En esta PoC el secreto se guarda en <code>localStorage</code>. En una app real debería guardarse en Secure Enclave / Android Keystore.</p>
-          </section>
-
-          <section class="card">
-            <h2>Secreto local demo</h2>
-            <div class="secret-box">
-              <span class="hint">Huella del secreto guardado</span>
-              <div id="secretFingerprint" class="mono-box">—</div>
-            </div>
-            <p class="hint">La contraseña final se deriva usando QRs + servicio + usuario + versión + este secreto local.</p>
-          </section>
-        </section>
+      <div class="overlay" id="ov-gameover" style="display:none">
+        <h2 style="color:var(--red)">GAME OVER</h2>
+        <p id="final-msg"></p>
+        <button class="overlay-btn" id="btn-restart">&#8635; REINICIAR</button>
       </div>
-    </section>
+    </div>
 
-    <section id="panelResult" class="app-panel">
-      <div class="layout">
-        <aside class="stack">
-          <section class="card">
-            <h2>Resumen de entrada</h2>
-            <div class="mono-box" id="inputSummary">—</div>
-            <div class="btn-row" style="margin-top:12px">
-              <button id="derivePassword2" class="green">Regenerar contraseña</button>
-              <button id="goScanFromResult" class="ghost">Volver al lector</button>
-            </div>
-          </section>
-        </aside>
+    <div class="query-progress">
+      <div class="section-label">&#9654; QUERY EN CONSTRUCCI&Oacute;N</div>
+      <div id="qprog"></div>
+    </div>
 
-        <section class="card">
-          <h2>Contraseña derivada</h2>
-          <div id="warnings"></div>
-          <div class="password-box">
-            <span class="hint">Salida demo</span>
-            <div id="passwordOutput" class="password">—</div>
-            <div class="btn-row">
-              <button id="copyPassword" class="green">Copiar</button>
-            </div>
-          </div>
-          <p class="hint">Demo técnica. No usar para contraseñas reales. La derivación usa SHA‑256 para demostrar determinismo, no una KDF final de producción.</p>
-        </section>
+    <div class="hint-bar" id="hint"></div>
+
+    <div class="controls-row">
+      <button class="ctrl-btn" id="btnL">&#9668; IZQ</button>
+      <button class="ctrl-btn" id="btnD">&#11015; BAJAR</button>
+      <button class="ctrl-btn" id="btnR">DER &#9658;</button>
+    </div>
+  </div>
+
+  <div class="ref-panel">
+    <div class="ref-title">&#9658; SQL REFERENCIA</div>
+
+    <div class="ref-tab active" id="ref-dml">
+      <div class="ref-group">
+        <div class="ref-group-label">ESTRUCTURA B&Aacute;SICA</div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--cyan)">SELECT &hellip; FROM</div><div class="ref-desc">Columnas y tabla origen</div><div class="ref-example">SELECT name FROM users</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--cyan)">WHERE</div><div class="ref-desc">Filtra filas con condici&oacute;n</div><div class="ref-example">WHERE age &gt; 18</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--amber)">ORDER BY / LIMIT</div><div class="ref-desc">Ordena y recorta resultado</div><div class="ref-example">ORDER BY name LIMIT 10</div></div>
       </div>
-    </section>
-  </main>
+      <div class="ref-group">
+        <div class="ref-group-label">AGREGACI&Oacute;N</div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--green)">COUNT(*) SUM AVG</div><div class="ref-desc">Calcul&aacute;n sobre grupos</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--green)">GROUP BY / HAVING</div><div class="ref-desc">Agrupa y filtra grupos</div></div>
+      </div>
+      <div class="ref-group">
+        <div class="ref-group-label">ORDEN CORRECTO SQL</div>
+        <div class="ref-desc" style="line-height:1.85;color:rgba(0,255,65,0.6)">1. SELECT<br>2. FROM<br>3. WHERE<br>4. GROUP BY<br>5. HAVING<br>6. ORDER BY<br>7. LIMIT</div>
+      </div>
+    </div>
 
-  <section id="printArea" class="print-area"></section>
+    <div class="ref-tab" id="ref-ddl">
+      <div class="ref-group">
+        <div class="ref-group-label">CREAR / BORRAR</div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--teal)">CREATE TABLE</div><div class="ref-desc">Crea una nueva tabla</div><div class="ref-syntax">CREATE TABLE t (<br>&nbsp;id INT,<br>&nbsp;name VARCHAR<br>)</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--teal)">DROP TABLE</div><div class="ref-desc">Elimina tabla + datos</div></div>
+      </div>
+      <div class="ref-group">
+        <div class="ref-group-label">MODIFICAR</div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--teal)">ALTER TABLE &hellip; ADD COLUMN</div><div class="ref-desc">A&ntilde;ade columna existente</div></div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--teal)">ALTER TABLE &hellip; DROP COLUMN</div><div class="ref-desc">Elimina columna + datos</div></div>
+      </div>
+      <div class="ref-group">
+        <div class="ref-group-label">TIPOS DE DATO</div>
+        <div class="ref-desc" style="line-height:1.85;color:var(--orange)">INT &mdash; entero<br>VARCHAR &mdash; texto<br>DECIMAL &mdash; decimal<br>DATE &mdash; fecha<br>BOOLEAN &mdash; true/false</div>
+      </div>
+      <div class="ref-group">
+        <div class="ref-group-label">RESTRICCIONES</div>
+        <div class="ref-desc" style="color:var(--teal);line-height:1.85">PRIMARY KEY<br>NOT NULL<br>UNIQUE<br>AUTO_INCREMENT<br>DEFAULT valor</div>
+      </div>
+    </div>
 
-  <script>
-    const STORAGE_KEY = "qrvault_poc_local_secret_v1";
+    <div class="ref-tab" id="ref-proc">
+      <div class="ref-group">
+        <div class="ref-group-label">TRIGGER</div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--violet)">CREATE TRIGGER</div><div class="ref-desc">C&oacute;digo autom&aacute;tico al INSERT/UPDATE/DELETE</div><div class="ref-syntax">CREATE TRIGGER nombre<br>BEFORE|AFTER evento<br>ON tabla<br>FOR EACH ROW<br>BEGIN END</div></div>
+      </div>
+      <div class="ref-group">
+        <div class="ref-group-label">PROCEDURE</div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--violet)">CREATE PROCEDURE</div><div class="ref-desc">Bloque SQL reutilizable<br>Llamar con CALL proc()</div><div class="ref-syntax">CREATE PROCEDURE p()<br>BEGIN<br>&nbsp;SQL;<br>END</div></div>
+      </div>
+      <div class="ref-group">
+        <div class="ref-group-label">DELIMITER</div>
+        <div class="ref-entry"><div class="ref-kw" style="color:var(--yellow)">DELIMITER //</div><div class="ref-desc">Cambia el terminador para que ; dentro de BEGIN/END no corte la instrucción</div><div class="ref-syntax">DELIMITER //<br>CREATE PROCEDURE p()<br>BEGIN<br>&nbsp;SELECT 1;<br>END<br>//<br>DELIMITER ;</div></div>
+      </div>
+    </div>
+  </div>
+</div>
 
-    const state = {
-      book: [],
-      selected: [],
-      stream: null,
-      scannerTimer: null,
-      detector: null,
-      audioContext: null,
-      lastScan: "",
-      lastScanAt: 0,
-      lastPassword: "",
-      localSecret: null
-    };
+<script>
+// ════════════════════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════════════════════
+const COLS = 7;
+const ROWS = 14;
 
-    const visualSymbols = {
-      geometric: ["◆", "●", "▲", "■", "◇", "○", "△", "□", "✦", "✚"],
-      cards: ["♠", "♥", "♦", "♣", "★", "☆", "⬟", "⬢", "⬡", "☉"],
-      emoji: ["🔒", "🔑", "🛡️", "📘", "🧩", "⚙️", "📎", "🧠", "📱", "💾"],
-      none: [""]
-    };
+const COLORS = {
+  kw:    { bg:'#001833', border:'#00f3ff', text:'#00f3ff' },
+  table: { bg:'#1a0f00', border:'#ffb700', text:'#ffb700' },
+  col:   { bg:'#001800', border:'#00ff41', text:'#00ff41' },
+  op:    { bg:'#1a0000', border:'#ff3131', text:'#ff3131' },
+  val:   { bg:'#0d0019', border:'#bc13fe', text:'#bc13fe' },
+  wild:  { bg:'#141414', border:'#cccccc', text:'#ffffff' },
+  sep:   { bg:'#0f0f0f', border:'#777777', text:'#bbbbbb' },
+  ddl:   { bg:'#001a10', border:'#00ffaa', text:'#00ffaa' },
+  dtype: { bg:'#1a0900', border:'#ff8c00', text:'#ff8c00' },
+  proc:  { bg:'#12001a', border:'#dd44ff', text:'#dd44ff' },
+  delim: { bg:'#1a1a00', border:'#eeee00', text:'#ffff55' },
+};
 
-    const $ = (id) => document.getElementById(id);
-    const els = {
-      gridSize: $("gridSize"), qrSize: $("qrSize"), entropyBytes: $("entropyBytes"), symbolSet: $("symbolSet"),
-      qrGrid: $("qrGrid"), selectedList: $("selectedList"), video: $("video"), scanLog: $("scanLog"), scanStatus: $("scanStatus"), scanReticle: $("scanReticle"), scannerFrame: $("scannerFrame"),
-      serviceName: $("serviceName"), userName: $("userName"), passwordLength: $("passwordLength"), version: $("version"),
-      useLower: $("useLower"), useUpper: $("useUpper"), useDigits: $("useDigits"), useSymbols: $("useSymbols"), symbols: $("symbols"),
-      userSequence: $("userSequence"), randomSequence: $("randomSequence"), secretStatus: $("secretStatus"), secretFingerprint: $("secretFingerprint"),
-      passwordOutput: $("passwordOutput"), warnings: $("warnings"), printArea: $("printArea"), bookInfo: $("bookInfo"), inputSummary: $("inputSummary")
-    };
+const GIANT_SYMBOLS = new Set(['*','=',',','.','(',')','<','>',';','//','$$','!=','>=','<=',':']);
 
-    function bytesToBase64Url(bytes) {
-      let binary = "";
-      bytes.forEach(b => binary += String.fromCharCode(b));
-      return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+function tokenType(t) {
+  if (t === '//' || t === '$$') return 'delim';
+
+  const proc_kw = new Set([
+    'PROCEDURE','TRIGGER','FUNCTION','BEGIN','END',
+    'BEFORE','AFTER','FOR EACH ROW','CALL','RETURN','RETURNS',
+    'DECLARE','DELIMITER','IN','OUT','INOUT','THEN','ELSE',
+    'LOOP','LEAVE','ITERATE','IF','HANDLER','SIGNAL'
+  ]);
+  const ddl_kw = new Set([
+    'CREATE','ALTER','DROP','ADD','TABLE','COLUMN','INDEX','DATABASE',
+    'SCHEMA','PRIMARY KEY','FOREIGN KEY','REFERENCES','UNIQUE','NOT NULL',
+    'AUTO_INCREMENT','DEFAULT','IF EXISTS','IF NOT EXISTS','MODIFY',
+    'RENAME','TRUNCATE','CONSTRAINT'
+  ]);
+  const dtype = new Set([
+    'INT','VARCHAR','DECIMAL','DATE','TEXT','BOOLEAN','FLOAT',
+    'BIGINT','SMALLINT','CHAR','DATETIME','TIMESTAMP','ENUM',
+    'TINYINT','BLOB','JSON','DOUBLE'
+  ]);
+  const dml_kw = new Set([
+    'SELECT','FROM','WHERE','ORDER BY','GROUP BY','LIMIT','HAVING',
+    'JOIN','INNER JOIN','LEFT JOIN','RIGHT JOIN','ON','AS',
+    'AND','OR','NOT','IN','LIKE','INSERT','INSERT INTO','UPDATE',
+    'SET','DELETE','VALUES','INTO','BETWEEN','IS NULL','IS NOT NULL',
+    'DISTINCT','UNION','EXISTS'
+  ]);
+  const ops  = new Set(['=','>','<','>=','<=','!=']);
+  const wild = new Set(['*','COUNT(*)','SUM(salary)','AVG(age)','MAX(salary)','NOW()','CURDATE()']);
+  const seps = new Set([',',';','(',')','.',':']);
+  const tables = new Set(['users','employees','orders','products','customers','departments','logs','temp_data','items','audit']);
+
+  if (proc_kw.has(t))  return 'proc';
+  if (ddl_kw.has(t))   return 'ddl';
+  if (dtype.has(t))    return 'dtype';
+  if (dml_kw.has(t))   return 'kw';
+  if (ops.has(t))      return 'op';
+  if (wild.has(t))     return 'wild';
+  if (seps.has(t))     return 'sep';
+  if (/^\d+$/.test(t) || t.startsWith("'")) return 'val';
+  if (tables.has(t))   return 'table';
+  return 'col';
+}
+
+const CATEGORIES = {
+  dml: {
+    label: 'DML',
+    icon:  '&#128269;',
+    color: 'var(--cyan)',
+    desc:  'Consultas de datos: SELECT, WHERE, GROUP BY, HAVING',
+    decoys: [
+      '*','name','salary','users','employees','WHERE','ORDER BY','LIMIT',
+      '=','>','<','AND','OR','active','1','10',',','age','email','status',
+      'COUNT(*)','id','products','!=','customers','orders'
+    ],
+    challenges: [
+      { query:['SELECT','*','FROM','users'], hint:'&#128161; SELECT * FROM obtiene TODAS las columnas de una tabla', explain:'El asterisco (*) es un comodin: "todas las columnas". Es la consulta mas basica, pero en produccion es mejor listar columnas explicitamente.', decoys:['WHERE','ORDER BY','name','employees','=','LIMIT'] },
+      { query:['SELECT','name','FROM','employees'], hint:'&#128161; Pide solo la columna "name". Mas eficiente que SELECT *', explain:'Nombrar columnas concretas transfiere menos datos y hace el codigo mas legible. SELECT * puede ser costoso en tablas con muchas columnas.', decoys:['*','users','WHERE','salary',',','age','ORDER BY'] },
+      { query:['SELECT','*','FROM','orders','WHERE','status','=','active'], hint:'&#128161; WHERE filtra filas. Solo devuelve pedidos donde status = active', explain:'WHERE evalua cada fila e incluye solo las que cumplen la condicion. Sin WHERE, obtendrias TODOS los pedidos sin filtro.', decoys:['name','users','ORDER BY','>','inactive','LIMIT','AND'] },
+      { query:['SELECT','name',',','salary','FROM','employees','WHERE','salary','>','50000'], hint:'&#128161; Varias columnas separadas con coma. WHERE + &gt; filtra por valor numerico', explain:'La coma separa columnas en SELECT. Los operadores > < = != filtran por comparacion numerica en WHERE. Muy util para rangos.', decoys:['*','users','=','<','ORDER BY','active','AND'] },
+      { query:['SELECT','*','FROM','products','ORDER BY','price'], hint:'&#128161; ORDER BY ordena el resultado. Por defecto ASC (ascendente)', explain:'ORDER BY reordena las filas. ASC = menor a mayor (por defecto), DESC = mayor a menor. Se puede ordenar por multiples columnas.', decoys:['WHERE','name','users','salary','=','active','LIMIT'] },
+      { query:['SELECT','COUNT(*)','FROM','users','WHERE','active','=','1'], hint:'&#128161; COUNT(*) cuenta las filas que cumplen el WHERE', explain:'Las funciones de agregacion (COUNT, SUM, AVG, MAX, MIN) calculan un valor resumen sobre un conjunto de filas. COUNT(*) no excluye NULLs.', decoys:['name','employees','ORDER BY','*','>','salary',','] },
+      { query:['SELECT','name',',','email','FROM','customers','ORDER BY','name','LIMIT','10'], hint:'&#128161; LIMIT recorta el resultado a los primeros N registros', explain:'LIMIT es esencial para paginacion y para evitar cargar millones de filas. Combinado con ORDER BY, siempre devuelve los mismos registros.', decoys:['*','users','WHERE','=','salary','active','GROUP BY'] },
+      { query:['SELECT','name',',','COUNT(*)','FROM','orders','GROUP BY','name'], hint:'&#128161; GROUP BY agrupa filas con el mismo valor para aplicar funciones de agregacion', explain:'GROUP BY es fundamental para estadisticas: cuantas ordenes por cliente, ventas por mes, etc. Cada grupo produce una fila en el resultado.', decoys:['*','users','WHERE','=','salary','LIMIT','ORDER BY'] },
+      { query:['SELECT','name',',','SUM(salary)','FROM','employees','GROUP BY','name','HAVING','SUM(salary)','>','100000'], hint:'&#128161; HAVING filtra grupos ya agrupados. Como WHERE pero DESPUES del GROUP BY', explain:'WHERE filtra filas ANTES de agrupar. HAVING filtra grupos DESPUES del GROUP BY. Ambos pueden coexistir en la misma query.', decoys:['*','users','WHERE','=','ORDER BY','LIMIT',',','age'] },
+    ],
+  },
+
+  ddl: {
+    label: 'DDL',
+    icon:  '&#128295;',
+    color: 'var(--teal)',
+    desc:  'Estructura de BD: CREATE TABLE, ALTER, DROP, INDEX',
+    decoys: [
+      'CREATE','ALTER','DROP','TABLE','COLUMN','INDEX','INT','VARCHAR',
+      'DECIMAL','DATE','users','employees','id','name','PRIMARY KEY',
+      'UNIQUE','NOT NULL','ADD',',','(',')',';','AUTO_INCREMENT','DEFAULT',
+      'orders','products','email','salary','price','total'
+    ],
+    challenges: [
+      { query:['CREATE','TABLE','users','(','id','INT',',','name','VARCHAR',')'], hint:'&#128161; CREATE TABLE define la estructura de una nueva tabla con columnas y tipos', explain:'CREATE TABLE crea la estructura de una tabla. Cada columna tiene nombre y tipo de dato: INT (entero), VARCHAR (texto), DATE (fecha), DECIMAL (decimal con decimales).', decoys:['ALTER','DROP','SELECT','FROM','WHERE','email','PRIMARY KEY','BOOLEAN'] },
+      { query:['ALTER','TABLE','employees','ADD','COLUMN','email','VARCHAR'], hint:'&#128161; ALTER TABLE ADD COLUMN: anyade una columna nueva sin eliminar datos existentes', explain:'ALTER TABLE modifica tablas ya creadas. ADD COLUMN es la operacion mas segura: anade sin perder datos. Si hay millones de filas, puede ser costoso en tiempo.', decoys:['CREATE','DROP','SELECT','name','INT','DECIMAL','UNIQUE','NOT NULL'] },
+      { query:['DROP','TABLE','temp_data'], hint:'&#128161; DROP TABLE elimina la tabla y TODOS sus datos. Completamente irreversible', explain:'DROP TABLE es irreversible. En produccion, haz siempre un backup antes. Usa DROP TABLE IF EXISTS para evitar errores si la tabla no existe.', decoys:['CREATE','ALTER','SELECT','users','employees','DATABASE','INDEX','COLUMN'] },
+      { query:['CREATE','TABLE','orders','(','id','INT','PRIMARY KEY',',','total','DECIMAL',')'], hint:'&#128161; PRIMARY KEY: identifica de forma unica cada fila, nunca puede repetirse ni ser NULL', explain:'PRIMARY KEY garantiza la unicidad de cada registro y es el pilar de la integridad relacional. Normalmente es un INT AUTO_INCREMENT. Cada tabla deberia tener una.', decoys:['ALTER','SELECT','name','VARCHAR','UNIQUE','NOT NULL','user_id','FOREIGN KEY'] },
+      { query:['CREATE','TABLE','users','(','id','INT','AUTO_INCREMENT','PRIMARY KEY',',','name','VARCHAR',')'], hint:'&#128161; AUTO_INCREMENT genera ids automaticamente. Se usa normalmente junto a PRIMARY KEY', explain:'AUTO_INCREMENT hace que la base de datos asigne un id nuevo en cada insercion. En MySQL suele combinarse con una clave primaria: id INT AUTO_INCREMENT PRIMARY KEY.', decoys:['ALTER','DROP','email','DECIMAL','NOT NULL','UNIQUE','DEFAULT','orders'] },
+      { query:['ALTER','TABLE','products','DROP','COLUMN','old_price'], hint:'&#128161; ALTER TABLE DROP COLUMN: elimina una columna y todos sus datos', explain:'Eliminar una columna borra todos sus datos definitivamente. Si hay indices o foreign keys que la referencian, tambien se eliminan o dan error.', decoys:['CREATE','ADD','SELECT','FROM','id','INT','name','COLUMN','ADD COLUMN'] },
+      { query:['CREATE','INDEX','idx_name','ON','users','(','name',')'], hint:'&#128161; CREATE INDEX acelera las busquedas en columnas frecuentemente consultadas', explain:'Sin indice, SQL escanea TODA la tabla (full scan). Con indice, accede directamente. El coste es espacio en disco y escrituras mas lentas. Como el indice de un libro.', decoys:['ALTER','TABLE','employees','salary','WHERE','SELECT','UNIQUE','PRIMARY KEY'] },
+    ],
+  },
+
+  proc: {
+    label: 'TRIGGERS',
+    icon:  '&#9889;',
+    color: 'var(--violet)',
+    desc:  'Automatizacion: TRIGGER, PROCEDURE, BEGIN/END, DELIMITER',
+    decoys: [
+      'TRIGGER','PROCEDURE','FUNCTION','BEGIN','END','BEFORE','AFTER',
+      'INSERT','UPDATE','DELETE','FOR EACH ROW','DELIMITER','//','users',
+      'employees','orders','SELECT','FROM','WHERE',';','(',')','CREATE',
+      'AFTER','BEFORE','CALL','DECLARE'
+    ],
+    challenges: [
+      { query:['CREATE','TRIGGER','log_insert','BEFORE','INSERT','ON','users','FOR EACH ROW','BEGIN','END'], hint:'&#128161; TRIGGER: codigo automatico que se dispara al hacer INSERT, UPDATE o DELETE', explain:'Los triggers ejecutan logica automaticamente. BEFORE INSERT significa "antes de cada insercion en users". FOR EACH ROW ejecuta el cuerpo por cada fila afectada.', decoys:['DELIMITER','//','PROCEDURE','FUNCTION','AFTER','UPDATE','DELETE','employees','orders'] },
+      { query:['CREATE','TRIGGER','del_audit','AFTER','DELETE','ON','orders','FOR EACH ROW','BEGIN','END'], hint:'&#128161; AFTER DELETE: el trigger se ejecuta DESPUES del borrado, ideal para auditorias', explain:'BEFORE permite validar o modificar datos ANTES de guardarlos. AFTER permite registrar lo que ya ocurrio. Muy usado para logs de auditoria.', decoys:['DELIMITER','//','PROCEDURE','BEFORE','INSERT','UPDATE','users','employees','FUNCTION'] },
+      { query:['DELIMITER','//','CREATE','TRIGGER','chk_salary','BEFORE','UPDATE','ON','employees','FOR EACH ROW','BEGIN','END','//'], hint:'&#128161; DELIMITER // evita que el ; del cuerpo corte prematuramente la declaracion del TRIGGER', explain:'MySQL interpreta ; como fin de instruccion. DELIMITER // cambia el terminador a // para poder escribir bloques BEGIN/END con ; dentro sin interrupciones.', decoys:['$$','PROCEDURE','AFTER','INSERT','DELETE','users','orders','FUNCTION'] },
+      { query:['CREATE','PROCEDURE','get_users','(',')','BEGIN','SELECT','*','FROM','users',';','END'], hint:'&#128161; PROCEDURE: bloque SQL reutilizable. Se invoca con CALL get_users()', explain:'Los procedimientos almacenados encapsulan logica SQL compleja. Reducen trafico de red, centralizan reglas de negocio y pueden tener parametros IN y OUT.', decoys:['DELIMITER','//','TRIGGER','FUNCTION','BEFORE','ALTER','employees','AFTER','DELETE'] },
+      { query:['DELIMITER','//','CREATE','PROCEDURE','clear_logs','(',')','BEGIN','DELETE','FROM','logs',';','END','//'], hint:'&#128161; PROCEDURE con DELIMITER: el // cierra el bloque completo del procedimiento', explain:'DELIMITER es imprescindible cuando el cuerpo contiene ; (como DELETE FROM... ;). Sin el, MySQL cortaria la instruccion en el primer punto y coma.', decoys:['TRIGGER','BEFORE','AFTER','FOR EACH ROW','SELECT','users','employees','$$','FUNCTION'] },
+    ],
+  },
+};
+
+const PREFS = { mode:'guided', cat:'dml', diff:'normal', speed:1.0 };
+
+const DIFFICULTY = {
+  easy:   { label:'Fácil',       speed:0.75, spawn:1.18, needed:0.72, lives:5 },
+  normal: { label:'Normal',      speed:1.00, spawn:1.00, needed:0.58, lives:3 },
+  hard:   { label:'Difícil',     speed:1.30, spawn:0.84, needed:0.48, lives:3 },
+  expert: { label:'Experto',     speed:1.58, spawn:0.70, needed:0.38, lives:2 },
+  insane: { label:'SQL Infernal',speed:1.95, spawn:0.58, needed:0.28, lives:1 },
+};
+
+const FREE_VALID_EXPRESSIONS = [
+  { query:['SELECT','*','FROM','users'], explain:'SELECT * FROM users es una consulta válida básica.' },
+  { query:['SELECT','name','FROM','employees'], explain:'Selecciona una columna concreta desde una tabla.' },
+  { query:['SELECT','name',',','email','FROM','customers','ORDER BY','name','LIMIT','10'], explain:'Consulta válida con selección múltiple, ordenación y límite.' },
+  { query:['SELECT','COUNT(*)','FROM','users','WHERE','active','=','1'], explain:'Cuenta usuarios activos mediante WHERE.' },
+  { query:['SELECT','name',',','COUNT(*)','FROM','orders','GROUP BY','name'], explain:'Agrupa pedidos por nombre y calcula un conteo.' },
+  { query:['SELECT','name',',','SUM(salary)','FROM','employees','GROUP BY','name','HAVING','SUM(salary)','>','100000'], explain:'HAVING filtra grupos después de GROUP BY.' },
+  { query:['CREATE','TABLE','users','(','id','INT',',','name','VARCHAR',')'], explain:'CREATE TABLE con columnas y tipos de dato válidos.' },
+  { query:['CREATE','TABLE','orders','(','id','INT','PRIMARY KEY',',','total','DECIMAL',')'], explain:'Crea una tabla con clave primaria y campo decimal.' },
+  { query:['CREATE','TABLE','users','(','id','INT','AUTO_INCREMENT','PRIMARY KEY',',','name','VARCHAR',')'], explain:'Crea una tabla válida con id autoincremental y clave primaria.' },
+  { query:['CREATE','TABLE','employees','(','id','INT','AUTO_INCREMENT','PRIMARY KEY',',','email','VARCHAR','UNIQUE',')'], explain:'Crea una tabla válida con AUTO_INCREMENT, PRIMARY KEY y UNIQUE.' },
+  { query:['ALTER','TABLE','employees','ADD','COLUMN','email','VARCHAR'], explain:'ALTER TABLE ADD COLUMN añade una columna válida.' },
+  { query:['DROP','TABLE','temp_data'], explain:'DROP TABLE elimina una tabla completa.' },
+  { query:['CREATE','INDEX','idx_name','ON','users','(','name',')'], explain:'CREATE INDEX crea un índice válido sobre una columna.' },
+  { query:['CREATE','TRIGGER','log_insert','BEFORE','INSERT','ON','users','FOR EACH ROW','BEGIN','END'], explain:'Trigger válido antes de insertar en users.' },
+  { query:['CREATE','TRIGGER','del_audit','AFTER','DELETE','ON','orders','FOR EACH ROW','BEGIN','END'], explain:'Trigger válido después de borrar en orders.' },
+  { query:['CREATE','PROCEDURE','get_users','(',')','BEGIN','SELECT','*','FROM','users',';','END'], explain:'Procedimiento válido que encapsula una consulta.' },
+  { query:['DELIMITER','//','CREATE','PROCEDURE','clear_logs','(',')','BEGIN','DELETE','FROM','logs',';','END','//'], explain:'Procedimiento válido con DELIMITER para bloques BEGIN/END.' },
+];
+
+function activeDifficulty() {
+  return DIFFICULTY[PREFS.diff] || DIFFICULTY.normal;
+}
+
+function loadSettings() {
+  try {
+    const mode  = localStorage.getItem('sqltris_mode');
+    const cat   = localStorage.getItem('sqltris_cat');
+    const diff  = localStorage.getItem('sqltris_diff');
+    const speed = localStorage.getItem('sqltris_speed');
+
+    if (mode && ['guided', 'free'].includes(mode)) {
+      PREFS.mode = mode;
+      document.getElementById('sel-mode').value = mode;
     }
 
-    function randomToken(byteLength) {
-      const bytes = new Uint8Array(byteLength);
-      crypto.getRandomValues(bytes);
-      return bytesToBase64Url(bytes);
+    if (cat && CATEGORIES[cat]) {
+      PREFS.cat = cat;
+      document.getElementById('sel-cat').value = cat;
+    } else {
+      PREFS.cat = 'dml';
+      document.getElementById('sel-cat').value = 'dml';
+      localStorage.removeItem('sqltris_cat');
     }
 
-    function cellId(index, size) {
-      const row = Math.floor(index / size) + 1;
-      const col = index % size;
-      return `${String.fromCharCode(65 + col)}${row}`;
+    if (diff && DIFFICULTY[diff]) {
+      PREFS.diff = diff;
+      document.getElementById('sel-diff').value = diff;
     }
 
-    function makePayload(item) {
-      return JSON.stringify({ app: "QRV-DEMO", id: item.id, s: item.symbol, t: item.token });
+    if (speed && !isNaN(parseFloat(speed))) {
+      PREFS.speed = parseFloat(speed);
+      document.getElementById('sel-speed').value = speed;
     }
+  } catch(e) {
+    PREFS.mode = 'guided';
+    PREFS.cat = 'dml';
+    PREFS.diff = 'normal';
+    PREFS.speed = 1.0;
+  }
 
-    function parsePayload(text) {
-      try {
-        const data = JSON.parse(text);
-        if (data?.app === "QRV-DEMO" && data.id && data.t) {
-          return { id: data.id, symbol: data.s || "", token: data.t };
-        }
-      } catch {}
-      return null;
+  updateCatDisplay();
+}
+
+function savePrefs() {
+  try {
+    localStorage.setItem('sqltris_mode',  PREFS.mode);
+    localStorage.setItem('sqltris_cat',   PREFS.cat);
+    localStorage.setItem('sqltris_diff',  PREFS.diff);
+    localStorage.setItem('sqltris_speed', String(PREFS.speed));
+  } catch(e) {}
+}
+
+function updateCatDisplay() {
+  const cat = CATEGORIES[PREFS.cat] || CATEGORIES.dml;
+
+  const pill = document.getElementById('cat-pill-start');
+  if (pill) {
+    pill.textContent = (PREFS.mode === 'free' ? '∞ LIBRE · ' : '') + cat.icon + ' ' + cat.label;
+    pill.style.color = PREFS.mode === 'free' ? 'var(--amber)' : cat.color;
+    pill.style.borderColor = PREFS.mode === 'free' ? 'var(--amber)' : cat.color;
+    pill.style.boxShadow = '0 0 10px currentColor';
+  }
+
+  const descEl = document.getElementById('cat-desc-start');
+  if (descEl) {
+    descEl.innerHTML = PREFS.mode === 'free'
+      ? 'Modo libre: construye cualquier expresión SQL válida. La puntuación depende de la longitud.'
+      : cat.desc;
+  }
+
+  document.querySelectorAll('.ref-tab').forEach(t => t.classList.remove('active'));
+  const activeTab = document.getElementById('ref-' + PREFS.cat);
+  if (activeTab) activeTab.classList.add('active');
+}
+
+document.getElementById('sel-mode').addEventListener('change', e => {
+  PREFS.mode = e.target.value; savePrefs(); updateCatDisplay();
+});
+document.getElementById('sel-cat').addEventListener('change', e => {
+  PREFS.cat = e.target.value; savePrefs(); updateCatDisplay();
+});
+document.getElementById('sel-diff').addEventListener('change', e => {
+  PREFS.diff = e.target.value; savePrefs();
+});
+document.getElementById('sel-speed').addEventListener('change', e => {
+  PREFS.speed = parseFloat(e.target.value); savePrefs();
+});
+
+let S = {};
+
+function resetState() {
+  S = {
+    running:       false,
+    level:         1,
+    score:         0,
+    lives:         activeDifficulty().lives,
+    combo:         1,
+    missStreak:    0,
+    cursor:        Math.floor(COLS / 2),
+    tokens:        [],
+    collected:     [],
+    neededIdx:     0,
+    challenge:     null,
+    challengeIdx:  0,
+    spawnTimer:    0,
+    spawnInterval: 90,
+    baseSpeed:     1.5,
+    particles:     [],
+    shakeTimer:    0,
+    frameCount:    0,
+    keyTimer:      { L:0, R:0 },
+    freeCurrent:   [],
+    freeCompleted: [],
+    freeBroken:    0,
+  };
+}
+
+const canvas  = document.getElementById('gc');
+const ctx     = canvas.getContext('2d');
+const wrapper = document.getElementById('cw');
+
+function syncCanvas() {
+  canvas.width  = wrapper.clientWidth;
+  canvas.height = wrapper.clientHeight;
+}
+function CW() { return canvas.width  / COLS; }
+function CH() { return canvas.height / ROWS; }
+
+function getActiveChallenges() {
+  return (CATEGORIES[PREFS.cat] || CATEGORIES.dml).challenges;
+}
+
+function getFreeExpressions() {
+  if (PREFS.cat === 'dml') return FREE_VALID_EXPRESSIONS.filter(e => e.query[0] === 'SELECT');
+  if (PREFS.cat === 'ddl') return FREE_VALID_EXPRESSIONS.filter(e => ['CREATE','ALTER','DROP'].includes(e.query[0]) && !e.query.includes('TRIGGER') && !e.query.includes('PROCEDURE'));
+  if (PREFS.cat === 'proc') return FREE_VALID_EXPRESSIONS.filter(e => e.query.includes('TRIGGER') || e.query.includes('PROCEDURE') || e.query.includes('DELIMITER'));
+  return FREE_VALID_EXPRESSIONS;
+}
+
+function samePrefix(query, prefix) {
+  if (prefix.length > query.length) return false;
+  return prefix.every((tok, i) => tok === query[i]);
+}
+
+function freeCandidates() {
+  return getFreeExpressions().filter(expr => samePrefix(expr.query, S.freeCurrent));
+}
+
+function freeNextTokens() {
+  const set = new Set();
+  freeCandidates().forEach(expr => {
+    if (expr.query.length > S.freeCurrent.length) set.add(expr.query[S.freeCurrent.length]);
+  });
+  return Array.from(set);
+}
+
+function freeCompletedExpression() {
+  return getFreeExpressions().find(expr =>
+    expr.query.length === S.freeCurrent.length && samePrefix(expr.query, S.freeCurrent)
+  );
+}
+
+function loadChallenge(idx) {
+  if (PREFS.mode === 'free') {
+    S.challenge = null;
+    S.neededIdx = 0;
+    S.collected = [];
+    S.tokens = [];
+    S.spawnTimer = 0;
+    S.freeCurrent = [];
+    S.freeCompleted = [];
+    renderTarget();
+    renderProgress();
+    setHint('&#8734; Modo libre: captura tokens para formar una expresión SQL válida. Si capturas un token inválido, se rompe el bloque actual y el anterior.', 'var(--amber)');
+
+    document.getElementById('challenge-num').innerHTML =
+      '&#8734; LIBRE &middot; <span style="color:var(--green)">' + activeDifficulty().label + '</span>';
+    document.getElementById('challenge-num').style.color = 'var(--amber)';
+    document.getElementById('challenge-num').style.borderColor = 'var(--amber)';
+    return;
+  }
+
+  const challenges = getActiveChallenges();
+  const ch = challenges[idx % challenges.length];
+  S.challenge  = ch;
+  S.neededIdx  = 0;
+  S.collected  = [];
+  S.tokens     = [];
+  S.spawnTimer = 0;
+
+  renderTarget();
+  renderProgress();
+  setHint(ch.hint);
+
+  const cat = CATEGORIES[PREFS.cat] || CATEGORIES.dml;
+  document.getElementById('challenge-num').innerHTML =
+    cat.icon + ' ' + cat.label +
+    ' &middot; <span style="color:var(--green)">' +
+    (S.challengeIdx + 1) + '&nbsp;/&nbsp;' + challenges.length + '</span>';
+  document.getElementById('challenge-num').style.color = cat.color;
+  document.getElementById('challenge-num').style.borderColor = cat.color;
+}
+
+function renderTarget() {
+  const el = document.getElementById('target-tokens');
+  el.innerHTML = '';
+
+  if (PREFS.mode === 'free') {
+    const next = freeNextTokens();
+    const label = document.createElement('span');
+    label.className = 'token-badge next';
+    label.textContent = next.length ? 'SIGUIENTES VÁLIDOS: ' + next.join(' / ') : 'INICIO: SELECT / CREATE / ALTER / DROP / DELIMITER';
+    label.style.cssText = 'color:var(--amber);border-color:var(--amber);background:#1a0f00;';
+    el.appendChild(label);
+    return;
+  }
+
+  const ch = S.challenge;
+  ch.query.forEach((tok, i) => {
+    const c    = COLORS[tokenType(tok)];
+    const span = document.createElement('span');
+    span.className = 'token-badge ' +
+      (i < S.neededIdx ? 'done' : i === S.neededIdx ? 'next' : 'future');
+    span.textContent = tok;
+    span.style.cssText = 'color:'+c.text+';border-color:'+c.border+';background:'+c.bg+';';
+    el.appendChild(span);
+  });
+}
+
+function renderProgress() {
+  const el = document.getElementById('qprog');
+
+  if (PREFS.mode === 'free') {
+    const completed = (S.freeCompleted || []).map((block, idx) => {
+      return '<span class="free-block">' + (idx + 1) + ': ' + block.query.join(' ') + '</span>';
+    }).join('');
+
+    const current = S.freeCurrent && S.freeCurrent.length
+      ? '<span class="free-current">' + S.freeCurrent.join(' ') + '</span>'
+      : '<span style="color:rgba(0,255,65,0.2)">-- construye una expresión libre --</span>';
+
+    el.innerHTML = completed + current;
+    return;
+  }
+
+  if (!S.collected.length) {
+    el.innerHTML = '<span style="color:rgba(0,255,65,0.2)">-- escribe tu query --</span>';
+    return;
+  }
+  el.innerHTML = S.collected.map(tok => {
+    const c = COLORS[tokenType(tok)];
+    return '<span style="color:'+c.text+';margin-right:5px">'+tok+'</span>';
+  }).join('');
+}
+
+function setHint(msg, color) {
+  const h = document.getElementById('hint');
+  h.innerHTML   = msg;
+  h.style.color = color || 'var(--amber)';
+}
+
+function updateHUD() {
+  document.getElementById('lvl').textContent   = S.level;
+  document.getElementById('sc').textContent    = S.score;
+  document.getElementById('hp').textContent    =
+    '\u2665'.repeat(S.lives) + '\u2661'.repeat(Math.max(0, 3 - S.lives));
+  document.getElementById('combo').textContent = 'x' + S.combo;
+}
+
+function spawnToken() {
+  let text;
+  let needed = null;
+
+  if (PREFS.mode === 'free') {
+    const next = freeNextTokens();
+    const diff = activeDifficulty();
+    const useValid = next.length && (Math.random() < diff.needed || S.tokens.length === 0);
+
+    if (useValid) {
+      text = next[Math.floor(Math.random() * next.length)];
+      needed = text;
+    } else {
+      const catDecoys = (CATEGORIES[PREFS.cat] || CATEGORIES.dml).decoys || [];
+      const allTokens = Array.from(new Set(getFreeExpressions().flatMap(e => e.query).concat(catDecoys)));
+      const invalid = allTokens.filter(tok => !next.includes(tok));
+      const pool = invalid.length ? invalid : allTokens;
+      text = pool[Math.floor(Math.random() * pool.length)];
     }
+  } else {
+    const ch = S.challenge;
+    needed = ch.query[S.neededIdx];
 
-    function qrImageUrl(text, size) {
-      return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=10&data=${encodeURIComponent(text)}`;
+    if (Math.random() < 0.38 || S.tokens.length === 0) {
+      text = needed;
+    } else {
+      const catDecoys = (CATEGORIES[PREFS.cat] || CATEGORIES.dml).decoys || [];
+      const pool = [...(ch.decoys || []), ...catDecoys].filter(d => d !== needed);
+      text = pool[Math.floor(Math.random() * pool.length)];
     }
+  }
 
-    async function sha256Base64Url(text) {
-      const data = new TextEncoder().encode(text);
-      const digest = await crypto.subtle.digest("SHA-256", data);
-      return bytesToBase64Url(new Uint8Array(digest));
-    }
+  const busy = new Set(S.tokens.map(t => t.col));
+  const free = Array.from({ length: COLS }, (_, i) => i).filter(c => !busy.has(c));
+  const col  = free.length ? free[Math.floor(Math.random() * free.length)] : Math.floor(Math.random() * COLS);
 
-    async function expand(seed, minLength) {
-      let out = "";
-      let counter = 0;
-      while (out.length < minLength) {
-        out += await sha256Base64Url(`${seed}|${counter++}`);
-      }
-      return out;
-    }
+  S.tokens.push({
+    id:       Math.random(),
+    text,
+    type:     tokenType(text),
+    col,
+    y:        -1,
+    isNeeded: PREFS.mode === 'free' ? freeNextTokens().includes(text) : text === needed,
+  });
+}
 
-    function generateBook() {
-      const size = Number(els.gridSize.value);
-      const byteLength = Number(els.entropyBytes.value);
-      const set = visualSymbols[els.symbolSet.value];
-      state.book = Array.from({ length: size * size }, (_, index) => ({
-        id: cellId(index, size),
-        token: randomToken(byteLength),
-        symbol: set[index % set.length]
-      }));
-      state.selected = [];
-      renderBook();
-      renderSelected();
-      updateSummaries();
-      els.passwordOutput.textContent = "—";
-      logScan(`Libreta generada: ${state.book.length} QRs`);
-    }
+function collectToken(tok) {
+  if (PREFS.mode === 'free') {
+    const tentative = [...S.freeCurrent, tok.text];
+    const stillValid = getFreeExpressions().some(expr => samePrefix(expr.query, tentative));
 
-    function renderBook() {
-      const gridSize = Number(els.gridSize.value);
-      const qrSize = Number(els.qrSize.value);
-      els.qrGrid.innerHTML = "";
-      els.qrGrid.style.gridTemplateColumns = `repeat(${gridSize}, minmax(78px, 1fr))`;
+    if (stillValid) {
+      S.freeCurrent = tentative;
+      S.collected = tentative;
+      S.missStreak = 0;
+      S.combo = Math.min(12, S.combo + 1);
 
-      state.book.forEach(item => {
-        const payload = makePayload(item);
-        const card = document.createElement("button");
-        card.type = "button";
-        card.className = "qr-card" + (state.selected.some(x => x.id === item.id && x.token === item.token) ? " selected" : "");
-        card.onclick = () => toggleSelection(item);
-
-        const img = document.createElement("img");
-        img.src = qrImageUrl(payload, qrSize);
-        img.alt = `QR ${item.id}`;
-        img.loading = "lazy";
-        img.crossOrigin = "anonymous";
-
-        const label = document.createElement("div");
-        label.className = "qr-label";
-        label.innerHTML = `<strong>${item.id}</strong><span class="symbol">${item.symbol}</span>`;
-
-        card.appendChild(img);
-        card.appendChild(label);
-        els.qrGrid.appendChild(card);
-      });
-    }
-
-    function toggleSelection(item) {
-      const index = state.selected.findIndex(x => x.id === item.id && x.token === item.token);
-      if (index >= 0) state.selected.splice(index, 1);
-      else state.selected.push({ id: item.id, token: item.token, symbol: item.symbol });
-      renderBook();
-      renderSelected();
-      updateSummaries();
-    }
-
-    function addScannedSelection(item) {
-      const exists = state.selected.some(x => x.id === item.id && x.token === item.token);
-      if (!exists) {
-        state.selected.push(item);
-        renderBook();
-        renderSelected();
-        updateSummaries();
-        logScan(`Escaneado: ${item.id}`);
-      }
-    }
-
-    function renderSelected() {
-      if (!state.selected.length) {
-        els.selectedList.innerHTML = `<span class="hint">No hay QRs seleccionados todavía.</span>`;
-        return;
-      }
-      els.selectedList.innerHTML = "";
-      state.selected.forEach((item, i) => {
-        const token = document.createElement("span");
-        token.className = "token";
-        token.innerHTML = `<span>${i + 1}. ${item.id} ${item.symbol || ""}</span>`;
-        const remove = document.createElement("button");
-        remove.type = "button";
-        remove.title = `Eliminar ${item.id}`;
-        remove.setAttribute("aria-label", `Eliminar ${item.id}`);
-        remove.textContent = "×";
-        remove.onclick = () => removeSelectionAt(i);
-        token.appendChild(remove);
-        els.selectedList.appendChild(token);
-      });
-    }
-
-    function removeSelectionAt(index) {
-      state.selected.splice(index, 1);
-      renderBook();
-      renderSelected();
-      updateSummaries();
-      logScan(`Eliminado escaneo #${index + 1}`);
-    }
-
-    function clearSelection() {
-      state.selected = [];
-      renderBook();
-      renderSelected();
-      updateSummaries();
-      els.passwordOutput.textContent = "—";
-    }
-
-    function logScan(message) {
-      const item = document.createElement("div");
-      item.className = "log-item";
-      item.textContent = `${new Date().toLocaleTimeString()} · ${message}`;
-      els.scanLog.prepend(item);
-    }
-
-    async function startScanner() {
-      if (!("BarcodeDetector" in window)) {
-        logScan("Este navegador no tiene BarcodeDetector. Usa Chrome/Android o selecciona QRs tocándolos.");
-        setScanStatus("Este navegador no tiene lector QR nativo. Prueba Chrome/Android.", true);
-        flashReticle("error");
-        return;
-      }
-      try {
-        state.detector = new BarcodeDetector({ formats: ["qr_code"] });
-        state.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-        els.video.srcObject = state.stream;
-        await els.video.play();
-        logScan("Cámara iniciada");
-        setScanStatus("Cámara lista. Centra un QR y pulsa Escanear ahora.", false);
-      } catch (error) {
-        logScan("No se pudo abrir la cámara: " + error.message);
-        setScanStatus("No se pudo abrir la cámara: " + error.message, true);
-        flashReticle("error");
-      }
-    }
-
-    async function scanNow() {
-      if (!state.stream || !state.detector || els.video.readyState < 2) {
-        setScanStatus("Abre la cámara antes de escanear.", true);
-        flashReticle("error");
-        beep(false);
-        return;
-      }
-
-      try {
-        setScanStatus("Leyendo QR centrado…", false);
-        const codes = await state.detector.detect(els.video);
-        if (!codes.length) {
-          setScanStatus("No he detectado ningún QR. Acércalo o céntralo mejor.", true);
-          flashReticle("error");
-          beep(false);
-          return;
-        }
-
-        const raw = chooseCenteredCode(codes).rawValue;
-        const parsed = parsePayload(raw);
-        if (!parsed) {
-          setScanStatus("QR leído, pero no pertenece a QR‑Vault PoC.", true);
-          logScan("QR leído, pero no pertenece a QR‑Vault PoC");
-          flashReticle("error");
-          beep(false);
-          return;
-        }
-
-        const exists = state.selected.some(x => x.id === parsed.id && x.token === parsed.token);
-        addScannedSelection(parsed);
-        setScanStatus(exists ? `QR ${parsed.id} ya estaba en la selección.` : `QR ${parsed.id} añadido correctamente.`, false);
-        flashReticle("success");
-        beep(true);
-      } catch (error) {
-        setScanStatus("Error al leer QR: " + error.message, true);
-        flashReticle("error");
-        beep(false);
-      }
-    }
-
-    function chooseCenteredCode(codes) {
-      if (codes.length === 1 || !els.video.videoWidth || !els.video.videoHeight) return codes[0];
-      const cx = els.video.videoWidth / 2;
-      const cy = els.video.videoHeight / 2;
-      return codes.slice().sort((a, b) => distanceToCenter(a, cx, cy) - distanceToCenter(b, cx, cy))[0];
-    }
-
-    function distanceToCenter(code, cx, cy) {
-      const box = code.boundingBox;
-      if (!box) return Number.MAX_SAFE_INTEGER;
-      const x = box.x + box.width / 2;
-      const y = box.y + box.height / 2;
-      return Math.hypot(x - cx, y - cy);
-    }
-
-    function setScanStatus(message, isError) {
-      els.scanStatus.innerHTML = `<div class="${isError ? "danger" : "notice"}">${message}</div>`;
-    }
-
-    function flashReticle(type) {
-      els.scanReticle.classList.remove("success", "error");
-      void els.scanReticle.offsetWidth;
-      els.scanReticle.classList.add(type);
-      setTimeout(() => els.scanReticle.classList.remove(type), 650);
-    }
-
-    function beep(success) {
-      try {
-        state.audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
-        const ctx = state.audioContext;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = success ? 880 : 220;
-        gain.gain.value = 0.08;
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + (success ? 0.08 : 0.14));
-      } catch {}
-    }
-
-    async function scanTick() {
-      // Escaneo continuo desactivado: ahora solo se escanea al pulsar.
-    }
-
-    function stopScanner() {
-      if (state.scannerTimer) clearTimeout(state.scannerTimer);
-      state.scannerTimer = null;
-      if (state.stream) {
-        state.stream.getTracks().forEach(track => track.stop());
-        state.stream = null;
-      }
-      els.video.srcObject = null;
-      logScan("Cámara detenida");
-    }
-
-    function getCharset() {
-      let charset = "";
-      if (els.useLower.checked) charset += "abcdefghijklmnopqrstuvwxyz";
-      if (els.useUpper.checked) charset += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-      if (els.useDigits.checked) charset += "0123456789";
-      if (els.useSymbols.checked) charset += els.symbols.value;
-      return Array.from(new Set(charset.split(""))).join("");
-    }
-
-    function showMessages(messages, hard = false) {
-      els.warnings.innerHTML = messages.map(m => `<div class="${hard ? "danger" : "notice"}">${m}</div>`).join("");
-    }
-
-    async function generateRandomSequence() {
-      els.randomSequence.value = randomToken(24);
-      await previewSecret();
-    }
-
-    async function deriveLocalSecret(userSeq, randomSeq) {
-      return sha256Base64Url(JSON.stringify({ app: "QRV-DEMO-LOCAL-SECRET", userSeq, randomSeq }));
-    }
-
-    async function createLocalSecret() {
-      if (!els.randomSequence.value) await generateRandomSequence();
-      const userSeq = els.userSequence.value.trim();
-      const randomSeq = els.randomSequence.value.trim();
-      if (!userSeq || !randomSeq) {
-        updateSecretStatus("Debes tener secuencia manual y aleatoria.", true);
-        return;
-      }
-      const secret = await deriveLocalSecret(userSeq, randomSeq);
-      const fingerprint = await sha256Base64Url("fingerprint|" + secret);
-      const payload = {
-        secret,
-        fingerprint: fingerprint.slice(0, 32),
-        createdAt: new Date().toISOString(),
-        demo: true
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      state.localSecret = payload;
-      updateSecretUI();
-      updateSummaries();
-    }
-
-    async function previewSecret() {
-      const userSeq = els.userSequence.value.trim();
-      const randomSeq = els.randomSequence.value.trim();
-      if (!userSeq || !randomSeq) return;
-      const secret = await deriveLocalSecret(userSeq, randomSeq);
-      const fp = await sha256Base64Url("fingerprint|" + secret);
-      els.secretFingerprint.textContent = `Vista previa: ${fp.slice(0, 32)}…`;
-    }
-
-    async function testLocalSecret() {
-      const stored = loadLocalSecret();
-      if (!stored) {
-        updateSecretStatus("No hay hash/secreto guardado para probar.", true);
-        return;
-      }
-      const userSeq = els.userSequence.value.trim();
-      const randomSeq = els.randomSequence.value.trim();
-      if (!userSeq || !randomSeq) {
-        updateSecretStatus("Introduce la misma secuencia manual y aleatoria usadas al crear el hash.", true);
-        return;
-      }
-      const candidate = await deriveLocalSecret(userSeq, randomSeq);
-      const candidateFp = await sha256Base64Url("fingerprint|" + candidate);
-      if (candidateFp.slice(0, 32) === stored.fingerprint) {
-        updateSecretStatus("Prueba correcta: las secuencias reconstruyen el mismo secreto local.", false);
+      const completed = freeCompletedExpression();
+      if (completed) {
+        const len = completed.query.length;
+        const bonus = len * len * 25 * S.combo * S.level;
+        S.score += bonus;
+        S.freeCompleted.push({ query:[...completed.query], score:bonus, explain:completed.explain });
+        S.freeCurrent = [];
+        S.collected = [];
+        spawnParticles(tok.col, true);
+        renderTarget();
+        renderProgress();
+        updateHUD();
+        setHint('&#10003; Expresión válida: <strong>' + completed.query.join(' ') + '</strong> &middot; +' + bonus + ' pts por longitud ' + len, 'var(--green)');
       } else {
-        updateSecretStatus("Prueba fallida: las secuencias no reconstruyen el secreto guardado.", true);
+        const pts = 25 * S.combo * S.level;
+        S.score += pts;
+        spawnParticles(tok.col, true);
+        renderTarget();
+        renderProgress();
+        updateHUD();
+        setHint('&#10003; Prefijo válido. Sigue construyendo la expresión. +' + pts + ' pts', 'var(--green)');
       }
+      return;
     }
 
-    function deleteLocalSecret() {
-      localStorage.removeItem(STORAGE_KEY);
-      state.localSecret = null;
-      updateSecretUI();
-      updateSummaries();
+    S.lives--;
+    S.missStreak++;
+    S.combo = Math.max(1, S.combo - 2);
+    S.shakeTimer = 18;
+    S.freeBroken++;
+
+    const brokenCurrent = S.freeCurrent.length ? S.freeCurrent.join(' ') : tok.text;
+    const brokenPrevious = S.freeCompleted.pop();
+
+    S.freeCurrent = [];
+    S.collected = [];
+
+    spawnParticles(tok.col, false);
+    renderTarget();
+    renderProgress();
+    updateHUD();
+
+    const prevMsg = brokenPrevious ? ' También se rompe el bloque anterior: <strong>' + brokenPrevious.query.join(' ') + '</strong>.' : '';
+    setHint('&#10007; Token inválido: <strong>' + tok.text + '</strong>. Se rompe el bloque actual: <strong>' + brokenCurrent + '</strong>.' + prevMsg, 'var(--red)');
+
+    if (S.lives <= 0) setTimeout(onGameOver, 500);
+    return;
+  }
+
+  const needed = S.challenge.query[S.neededIdx];
+
+  if (tok.text === needed) {
+    S.collected.push(tok.text);
+    S.neededIdx++;
+    S.missStreak = 0;
+    S.combo = Math.min(8, S.combo + 1);
+    const pts = 100 * S.level * S.combo;
+    S.score  += pts;
+
+    spawnParticles(tok.col, true);
+    renderTarget();
+    renderProgress();
+    updateHUD();
+
+    if (S.neededIdx >= S.challenge.query.length) {
+      setTimeout(onLevelComplete, 650);
+    } else {
+      const nextTok = S.challenge.query[S.neededIdx];
+      setHint('&#10003; +' + pts + 'pts &nbsp;COMBO x' + S.combo + ' &middot; Captura: <strong>' + nextTok + '</strong>', 'var(--green)');
+    }
+  } else {
+    S.lives--;
+    S.missStreak++;
+    S.combo      = Math.max(1, S.combo - 1);
+    S.shakeTimer = 18;
+
+    spawnParticles(tok.col, false);
+    renderTarget();
+    updateHUD();
+
+    const warn = S.missStreak > 2 ? ' &nbsp;&#9888; ' + S.missStreak + ' fallos seguidos!' : '';
+    setHint('&#10007; &quot;' + tok.text + '&quot; incorrecto. Necesitas: <strong>' + needed + '</strong>' + warn, 'var(--red)');
+
+    if (S.lives <= 0) setTimeout(onGameOver, 500);
+  }
+}
+
+function spawnParticles(col, correct) {
+  const x     = col * CW() + CW() / 2;
+  const y     = canvas.height - CH();
+  const color = correct ? '#00ff41' : '#ff3131';
+  const count = correct ? 15 : 9;
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 * i / count) + Math.random() * 0.5;
+    const spd   = Math.random() * 4 + 1;
+    S.particles.push({
+      x, y,
+      vx:      Math.cos(angle) * spd,
+      vy:      Math.sin(angle) * spd - 2.5,
+      life:    40 + Math.random() * 20,
+      maxLife: 60,
+      color,
+      r:       Math.random() * 4 + 2,
+    });
+  }
+}
+
+function draw() {
+  const cw = CW(), ch = CH();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.lineWidth   = 1;
+  ctx.strokeStyle = 'rgba(0,255,65,0.05)';
+  for (let c = 0; c <= COLS; c++) {
+    ctx.beginPath(); ctx.moveTo(c*cw, 0); ctx.lineTo(c*cw, canvas.height); ctx.stroke();
+  }
+  for (let r = 0; r <= ROWS; r++) {
+    ctx.beginPath(); ctx.moveTo(0, r*ch); ctx.lineTo(canvas.width, r*ch); ctx.stroke();
+  }
+
+  const cx = S.cursor * cw;
+  ctx.fillStyle = 'rgba(0,255,65,0.065)';
+  ctx.fillRect(cx, 0, cw, canvas.height);
+
+  ctx.strokeStyle = 'rgba(0,255,65,0.8)';
+  ctx.lineWidth   = 2;
+  ctx.strokeRect(cx + 3, canvas.height - ch + 3, cw - 6, ch - 6);
+  ctx.fillStyle   = 'rgba(0,255,65,0.7)';
+  ctx.fillRect(cx + 3, canvas.height - ch, cw - 6, 3);
+
+  const ghostToken = PREFS.mode === 'free'
+    ? freeNextTokens()[0]
+    : (S.challenge && S.neededIdx < S.challenge.query.length ? S.challenge.query[S.neededIdx] : null);
+
+  if (ghostToken) {
+    const needed    = ghostToken;
+    const c         = COLORS[tokenType(needed)];
+    const isGhostGiant = GIANT_SYMBOLS.has(needed);
+    const ghostFs   = isGhostGiant ? Math.min(ch * 0.62, cw * 0.52) : Math.max(7, Math.min(12, cw / Math.max(1, needed.length) * 1.35));
+    ctx.font        = 'bold ' + ghostFs + 'px Share Tech Mono,monospace';
+    ctx.fillStyle   = c.text + '40';
+    ctx.textAlign   = 'center';
+    ctx.textBaseline= 'middle';
+    ctx.fillText(needed, cx + cw/2, canvas.height - ch/2);
+  }
+
+  S.tokens.forEach(tok => {
+    const x = tok.col * cw;
+    const y = tok.y   * ch;
+    const c = COLORS[tok.type];
+    const pad = 3;
+
+    const isNext = PREFS.mode === 'free'
+      ? freeNextTokens().includes(tok.text)
+      : (tok.isNeeded && S.challenge && tok.text === S.challenge.query[S.neededIdx]);
+
+    ctx.fillStyle = c.bg;
+    ctx.fillRect(x + pad, y + pad, cw - pad*2, ch - pad*2);
+
+    if (isNext) { ctx.shadowColor = c.border; ctx.shadowBlur = 16; }
+    ctx.strokeStyle = c.border;
+    ctx.lineWidth   = isNext ? 2 : 1;
+    ctx.strokeRect(x + pad, y + pad, cw - pad*2, ch - pad*2);
+    ctx.shadowBlur  = 0;
+
+    const isGiant = GIANT_SYMBOLS.has(tok.text);
+    let displayText, fs;
+    if (isGiant) {
+      displayText = tok.text;
+      fs = Math.min(ch * 0.68, cw * 0.56);
+    } else {
+      const maxCh = Math.max(1, Math.floor((cw - 10) / 7));
+      displayText = tok.text.length > maxCh ? tok.text.slice(0, maxCh - 1) + '.' : tok.text;
+      fs = Math.max(7, Math.min(12, (cw - 10) / Math.max(1, displayText.length) * 1.6));
     }
 
-    function loadLocalSecret() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (parsed?.secret && parsed?.fingerprint) return parsed;
-      } catch {}
-      return null;
+    ctx.font         = (isGiant ? '' : 'bold ') + fs + 'px Share Tech Mono,monospace';
+    ctx.fillStyle    = c.text;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(displayText, x + cw/2, y + ch/2);
+  });
+
+  S.particles.forEach(p => {
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.fillStyle   = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * (p.life / p.maxLife), 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+let rafId = null;
+
+function gameLoop() {
+  if (!S.running) return;
+  S.frameCount++;
+
+  if (keys.L) {
+    S.keyTimer.L++;
+    if (S.keyTimer.L === 1 || (S.keyTimer.L > 10 && S.keyTimer.L % 2 === 0)) {
+      if (S.cursor > 0) S.cursor--;
+    }
+  } else { S.keyTimer.L = 0; }
+
+  if (keys.R) {
+    S.keyTimer.R++;
+    if (S.keyTimer.R === 1 || (S.keyTimer.R > 10 && S.keyTimer.R % 2 === 0)) {
+      if (S.cursor < COLS - 1) S.cursor++;
+    }
+  } else { S.keyTimer.R = 0; }
+
+  const diffMult = activeDifficulty().speed;
+
+  const adaptMult = Math.max(0.82, Math.min(1.14, 1 + (S.combo - 1) * 0.02 - S.missStreak * 0.03));
+
+  const activeRPS = S.baseSpeed * diffMult * PREFS.speed * adaptMult;
+  const fallDelta = (activeRPS / 60) * (keys.D ? 7 : 1);
+  const activeSpawnInterval = Math.max(16, (S.spawnInterval * activeDifficulty().spawn) / (diffMult * PREFS.speed));
+
+  S.spawnTimer++;
+  if (S.spawnTimer >= activeSpawnInterval) {
+    spawnToken();
+    S.spawnTimer = 0;
+  }
+
+  const toRemove = [];
+  S.tokens.forEach(tok => {
+    tok.y += fallDelta;
+
+    if (PREFS.mode === 'free') {
+      tok.isNeeded = freeNextTokens().includes(tok.text);
+    } else if (S.challenge && S.neededIdx < S.challenge.query.length) {
+      tok.isNeeded = (tok.text === S.challenge.query[S.neededIdx]);
     }
 
-    function updateSecretStatus(message, isError) {
-      els.secretStatus.className = isError ? "danger" : "notice";
-      els.secretStatus.textContent = message;
+    if (tok.y >= ROWS - 1) {
+      if (tok.col === S.cursor) collectToken(tok);
+      toRemove.push(tok.id);
     }
+  });
+  S.tokens = S.tokens.filter(t => !toRemove.includes(t.id));
 
-    function updateSecretUI() {
-      state.localSecret = loadLocalSecret();
-      if (state.localSecret) {
-        updateSecretStatus(`Hash/secreto local guardado desde ${new Date(state.localSecret.createdAt).toLocaleString()}.`, false);
-        els.secretFingerprint.textContent = state.localSecret.fingerprint + "…";
-      } else {
-        updateSecretStatus("No hay hash/secreto local guardado todavía.", true);
-        els.secretFingerprint.textContent = "—";
-      }
-    }
+  S.particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.13; p.life--;
+  });
+  S.particles = S.particles.filter(p => p.life > 0);
 
-    async function derivePassword() {
-      const length = Number(els.passwordLength.value);
-      const charset = getCharset();
-      const localSecret = loadLocalSecret();
-      const problems = [];
-      const notes = [];
-      if (state.selected.length < 3) problems.push("Selecciona o escanea al menos 3 QRs.");
-      if (!charset) problems.push("Debes permitir al menos un tipo de carácter.");
-      if (!els.serviceName.value.trim()) problems.push("Indica el servicio.");
-      if (!localSecret) problems.push("Genera y guarda primero el hash/secreto local del usuario en Configuración.");
-      if (length < 12) notes.push("Longitud baja: útil para servicios restrictivos, pero menos segura.");
-      if (problems.length) {
-        showMessages(problems, true);
-        activatePanel("panelResult");
-        updateSummaries();
-        return;
-      }
+  if (S.shakeTimer > 0) {
+    canvas.style.transform = 'translateX(' + ((Math.random() - 0.5) * 5) + 'px)';
+    if (--S.shakeTimer === 0) canvas.style.transform = '';
+  }
 
-      const material = JSON.stringify({
-        tokens: state.selected.map(x => x.token),
-        order: state.selected.map(x => x.id),
-        service: els.serviceName.value.trim().toLowerCase(),
-        user: els.userName.value.trim().toLowerCase(),
-        version: els.version.value,
-        localSecret: localSecret.secret,
-        profile: { length, charset }
-      });
+  draw();
+  rafId = requestAnimationFrame(gameLoop);
+}
 
-      const stream = await expand(material, length * 4);
-      let password = "";
-      for (let i = 0; password.length < length && i < stream.length; i++) {
-        password += charset[stream.charCodeAt(i) % charset.length];
-      }
-      state.lastPassword = password;
-      els.passwordOutput.textContent = password;
-      showMessages(notes.length ? notes : ["Contraseña generada para la demo."], false);
-      updateSummaries();
-      activatePanel("panelResult");
-    }
+function onLevelComplete() {
+  S.running = false;
+  if (rafId) cancelAnimationFrame(rafId);
 
-    async function copyPassword() {
-      if (!state.lastPassword) return;
-      try {
-        await navigator.clipboard.writeText(state.lastPassword);
-        const old = els.passwordOutput.textContent;
-        els.passwordOutput.textContent = "Copiada al portapapeles";
-        setTimeout(() => els.passwordOutput.textContent = old, 1200);
-      } catch {
-        showMessages(["No se pudo copiar automáticamente. Selecciona la contraseña manualmente."], true);
-      }
-    }
+  const bonus = 500 * S.level * S.combo;
+  S.score += bonus;
+  updateHUD();
 
-    function updateSummaries() {
-      const entropy = Number(els.entropyBytes.value) * 8;
-      els.bookInfo.textContent = [
-        `QRs: ${state.book.length}`,
-        `Entropía por QR: ${entropy} bits`,
-        `Seleccionados: ${state.selected.length}`,
-        `Hash local: ${loadLocalSecret() ? "guardado" : "no guardado"}`
-      ].join("\n");
+  document.getElementById('completed-q').textContent = S.collected.join(' ');
+  document.getElementById('level-exp').innerHTML     = S.challenge.explain;
+  document.getElementById('level-bonus').innerHTML   = '&#127942; +' + bonus + ' pts BONUS &nbsp; COMBO x' + S.combo;
+  document.getElementById('ov-level').style.display  = 'flex';
+}
 
-      els.inputSummary.textContent = [
-        `Servicio: ${els.serviceName.value || "—"}`,
-        `Usuario: ${els.userName.value || "—"}`,
-        `QRs: ${state.selected.map((x, i) => `${i + 1}.${x.id}`).join(" → ") || "—"}`,
-        `Longitud: ${els.passwordLength.value}`,
-        `Versión: ${els.version.value}`,
-        `Hash local: ${loadLocalSecret()?.fingerprint || "—"}`
-      ].join("\n");
-    }
+function onGameOver() {
+  S.running = false;
+  if (rafId) cancelAnimationFrame(rafId);
+  document.getElementById('final-msg').innerHTML =
+    'Puntuaci&oacute;n: <strong>' + S.score + '</strong> pts' +
+    ' &nbsp;&middot;&nbsp; ' + (PREFS.mode === 'free'
+      ? 'Bloques v&aacute;lidos: ' + (S.freeCompleted ? S.freeCompleted.length : 0)
+      : 'Niveles: ' + (S.level - 1));
+  document.getElementById('ov-gameover').style.display = 'flex';
+}
 
-    function buildPrintArea() {
-      const gridSize = Number(els.gridSize.value);
-      const printQrSize = 180;
-      els.printArea.innerHTML = `
-        <h1 class="print-title">QR‑Vault · Libreta de prueba</h1>
-        <p class="print-note">Demo técnica. No usar para contraseñas reales. Generada localmente en navegador.</p>
-        <div class="print-grid" style="grid-template-columns: repeat(${Math.min(gridSize, 10)}, 1fr)"></div>
-      `;
-      const grid = els.printArea.querySelector(".print-grid");
-      state.book.forEach(item => {
-        const card = document.createElement("div");
-        card.className = "print-card";
-        const img = document.createElement("img");
-        img.src = qrImageUrl(makePayload(item), printQrSize);
-        img.alt = `QR ${item.id}`;
-        const label = document.createElement("div");
-        label.className = "print-label";
-        label.innerHTML = `<strong>${item.id}</strong><span>${item.symbol}</span>`;
-        card.appendChild(img);
-        card.appendChild(label);
-        grid.appendChild(card);
-      });
-    }
+function startGame() {
+  syncCanvas();
+  document.getElementById('ov-start').style.display = 'none';
 
-    async function printBook() {
-      buildPrintArea();
-      const images = Array.from(els.printArea.querySelectorAll("img"));
-      await Promise.all(images.map(img => new Promise(resolve => {
-        if (img.complete) resolve();
-        img.onload = resolve;
-        img.onerror = resolve;
-      })));
-      window.print();
-    }
+  resetState();
+  S.level        = 1;
+  S.challengeIdx = 0;
 
-    function activatePanel(id) {
-      document.querySelectorAll(".app-tab").forEach(t => t.classList.toggle("active", t.dataset.panel === id));
-      document.querySelectorAll(".app-panel").forEach(p => p.classList.toggle("active", p.id === id));
-      updateSummaries();
-    }
+  S.baseSpeed     = 1.5;
+  S.spawnInterval = 90;
 
-    document.querySelectorAll(".app-tab").forEach(btn => btn.addEventListener("click", () => activatePanel(btn.dataset.panel)));
-    $("generateBook").addEventListener("click", generateBook);
-    $("printBook").addEventListener("click", printBook);
-    $("clearSelection").addEventListener("click", clearSelection);
-    $("clearSelection2").addEventListener("click", clearSelection);
-    $("startScan").addEventListener("click", startScanner);
-    $("scanNow").addEventListener("click", scanNow);
-    els.scannerFrame.addEventListener("click", scanNow);
-    $("stopScan").addEventListener("click", stopScanner);
-    $("goConfigFromScan").addEventListener("click", () => activatePanel("panelConfig"));
-    $("goResultFromConfig").addEventListener("click", () => activatePanel("panelResult"));
-    $("goScanFromResult").addEventListener("click", () => activatePanel("panelScan"));
-    $("derivePassword").addEventListener("click", derivePassword);
-    $("derivePassword2").addEventListener("click", derivePassword);
-    $("copyPassword").addEventListener("click", copyPassword);
-    $("generateRandomSequence").addEventListener("click", generateRandomSequence);
-    $("createLocalSecret").addEventListener("click", createLocalSecret);
-    $("testLocalSecret").addEventListener("click", testLocalSecret);
-    $("deleteLocalSecret").addEventListener("click", deleteLocalSecret);
-    els.userSequence.addEventListener("input", previewSecret);
-    els.randomSequence.addEventListener("input", previewSecret);
-    [els.serviceName, els.userName, els.passwordLength, els.version, els.symbols].forEach(el => el.addEventListener("input", updateSummaries));
+  loadChallenge(0);
+  updateHUD();
+  S.running = true;
+  gameLoop();
+}
 
-    updateSecretUI();
-    generateBook();
-  </script>
+function nextLevel() {
+  document.getElementById('ov-level').style.display = 'none';
+  S.level++;
+
+  S.baseSpeed     = 1.5 + (S.level - 1) * 0.12;
+  S.spawnInterval = Math.max(35, 90 - (S.level - 1) * 4);
+
+  S.challengeIdx = (S.challengeIdx + 1) % getActiveChallenges().length;
+  loadChallenge(S.challengeIdx);
+
+  updateHUD();
+  S.running = true;
+  gameLoop();
+}
+
+function restartGame() {
+  document.getElementById('ov-gameover').style.display = 'none';
+  startGame();
+}
+
+const keys = { L:false, R:false, D:false };
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft'  || e.key === 'a')                  { keys.L = true; e.preventDefault(); }
+  if (e.key === 'ArrowRight' || e.key === 'd')                  { keys.R = true; e.preventDefault(); }
+  if (e.key === 'ArrowDown'  || e.key === 's' || e.key === ' ') { keys.D = true; e.preventDefault(); }
+});
+document.addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft'  || e.key === 'a')                  keys.L = false;
+  if (e.key === 'ArrowRight' || e.key === 'd')                  keys.R = false;
+  if (e.key === 'ArrowDown'  || e.key === 's' || e.key === ' ') keys.D = false;
+});
+
+function bindBtn(id, key) {
+  const btn = document.getElementById(id);
+  ['touchstart','mousedown'].forEach(ev => btn.addEventListener(ev, e => {
+    if (ev === 'touchstart') e.preventDefault();
+    keys[key] = true; btn.classList.add('pressed');
+  }, { passive:false }));
+  ['touchend','mouseup','mouseleave'].forEach(ev => btn.addEventListener(ev, e => {
+    if (ev === 'touchend') e.preventDefault();
+    keys[key] = false; btn.classList.remove('pressed');
+  }, { passive:false }));
+}
+bindBtn('btnL','L');
+bindBtn('btnD','D');
+bindBtn('btnR','R');
+
+document.getElementById('btn-start').addEventListener('click',   startGame);
+document.getElementById('btn-next').addEventListener('click',    nextLevel);
+document.getElementById('btn-restart').addEventListener('click', restartGame);
+
+let swipeX = null;
+canvas.addEventListener('touchstart', e => { swipeX = e.touches[0].clientX; }, { passive:true });
+canvas.addEventListener('touchend', e => {
+  if (swipeX === null) return;
+  const dx = e.changedTouches[0].clientX - swipeX;
+  if (Math.abs(dx) > 22) {
+    if (dx < 0 && S.cursor > 0)          S.cursor--;
+    if (dx > 0 && S.cursor < COLS - 1)   S.cursor++;
+  }
+  swipeX = null;
+});
+
+let rto;
+window.addEventListener('resize', () => {
+  clearTimeout(rto);
+  rto = setTimeout(() => { syncCanvas(); draw(); }, 100);
+});
+
+// ── INIT ─────────────────────────────────────────────────
+resetState();
+loadSettings();
+syncCanvas();
+draw();
+</script>
 </body>
 </html>
