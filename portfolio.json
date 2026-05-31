@@ -1,0 +1,10 @@
+{
+  "categoria": "Juegos",
+  "icono": "🎮",
+  "etiquetas": ["SQL", "juego", "bases de datos", "aprendizaje"],
+  "descripcion": "Juego educativo para practicar o aprender conceptos relacionados con SQL y bases de datos.",
+  "demo": "",
+  "destacado": true,
+  "orden": 10,
+  "ocultar": false
+}
